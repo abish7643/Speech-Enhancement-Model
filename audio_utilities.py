@@ -5,11 +5,15 @@ import matplotlib.pyplot as plt
 
 
 class FeatureExtraction:
-    def __init__(self, sampling_rate=22050, frame_length=1024, hop_length=512):
+    def __init__(self, sampling_rate=22050, frame_length=1024, hop_length=512,
+                 window_length=1024, window_function="vorbis", debug=False):
         self.sampling_rate = sampling_rate
         self.frame_length = frame_length
         self.hop_length = hop_length
+        self.window_length = window_length
+        self.window_function = window_function
         self.figure_size = (18, 5)
+        self.debug = debug
 
     def stft(self, audio_file_name, visualize=False):
         sampling_rate = self.sampling_rate
@@ -168,7 +172,7 @@ class FeatureExtraction:
 
             frames = range(len(audio_file_spectral_centroid[0]))
             time_axis = librosa.time_to_frames(frames, sr=sampling_rate,
-                                          n_fft=frame_length, hop_length=hop_length)
+                                               n_fft=frame_length, hop_length=hop_length)
 
             plt.plot(time_axis, audio_file_spectral_centroid[0])
             plt.show()
@@ -203,9 +207,54 @@ class FeatureExtraction:
 
             frames = range(len(audio_file_spectral_bandwidth[0]))
             time_axis = librosa.time_to_frames(frames, sr=sampling_rate,
-                                          n_fft=frame_length, hop_length=hop_length)
+                                               n_fft=frame_length, hop_length=hop_length)
 
             plt.plot(time_axis, audio_file_spectral_bandwidth[0])
             plt.show()
 
         return audio_file_spectral_bandwidth[0]
+
+    def vorbis_window(self, visualize=False):
+        """
+        The Vorbis Window is defined as,
+        W(n) = sin[pi/2*sin(pi*n/N)]
+
+        :param visualize: Pass True if function has to be plotted
+        :return: numpy array of set window length
+        """
+
+        window_length = self.window_length
+        n = np.linspace(0, window_length - 1, window_length)
+        pi = np.pi
+        vorbis_window = np.sin(pi / 2 * (np.sin(pi * (n / window_length))) ** 2)
+
+        if visualize:
+            plt.figure(figsize=self.figure_size)
+            plt.plot(vorbis_window)
+            plt.title("Vorbis Window")
+            plt.show()
+
+        return vorbis_window
+
+    def hamming_window(self, visualize=False):
+        """
+        The Hamming Window is defined as,
+        W(n) = 0.5(1-cos(2*pi*n/N))
+
+        :param visualize: Pass True if function has to be plotted
+        :return: numpy array of set window length
+        """
+
+        window_length = self.window_length
+        # n = np.linspace(0, window_length - 1, window_length)
+        # pi = np.pi
+        # hamming_window = np.sin(pi / 2 * (np.sin(pi * (n / window_length))) ** 2)
+        hamming_window = np.hamming(window_length)
+
+        if visualize:
+            plt.figure(figsize=self.figure_size)
+            plt.plot(hamming_window)
+            plt.title("Hamming Window")
+            plt.show()
+
+        return hamming_window
