@@ -122,8 +122,8 @@ class FeatureExtraction:
             # time_axis = librosa.times_like(fundamental_frequencies, sr=sampling_rate,
             #                                n_fft=frame_length, hop_length=hop_length)
 
-            female_speech_frames = range(len(fundamental_frequencies))
-            time_axis = librosa.frames_to_time(female_speech_frames, hop_length=hop_length)
+            audio_file_frames = range(len(fundamental_frequencies))
+            time_axis = librosa.frames_to_time(audio_file_frames, hop_length=hop_length)
 
             # Find Log Magnitude Spectrum
             audio_file_stft = librosa.stft(y=audio_file, n_fft=frame_length, hop_length=hop_length)
