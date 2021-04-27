@@ -92,6 +92,13 @@ class FeatureExtraction:
 
         if visualize:
             plt.figure(figsize=self.figure_size)
+            librosa.display.specshow(data=audio_log_mel_spectrogram, sr=sampling_rate,
+                                     x_axis="time", y_axis="mel")
+            plt.colorbar(format="%+2.f")
+            plt.title("Log Mel Spectrogram")
+            plt.show()
+
+            plt.figure(figsize=self.figure_size)
             librosa.display.specshow(data=mfccs, sr=sampling_rate, hop_length=hop_length,
                                      x_axis="time", y_axis="mel")
             plt.colorbar(format="%+2.f")
