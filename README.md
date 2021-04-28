@@ -10,8 +10,9 @@
 ### Installation
 1. Install python3 and python3-venv 
    ```sh
-   sudo apt install python3 python3-venv
+   sudo apt install python3 python3-venv python3-tk
    ```
+   > python3-tk is used by Matplotlib for displaying plots
 2. Create Virtual Environment
    ```sh
    python3 -m venv venv
@@ -24,6 +25,10 @@
     ```sh
     pip3 install -r requirements.txt
     ```
+   Alternatively, the required libraries can be installed by
+   ```sh
+   pip3 install librosa matplotlib notebook IPython
+   ```
     
 <!--
 ### ⚡️Progress
