@@ -33,24 +33,24 @@ class FeatureExtraction:
         window_function_array = self.window_function_array
 
         # Find STFT
-        audio_file_stft = librosa.stft(audio, n_fft=frame_length, hop_length=hop_length,
-                                       win_length=window_length, window=window_function_array)
+        audio_stft = librosa.stft(audio, n_fft=frame_length, hop_length=hop_length,
+                                  win_length=window_length, window=window_function_array)
 
         if visualize:
             # Find The Magnitude Spectrum
-            audio_file_magnitude_spectrum = np.abs(audio_file_stft) ** 2
+            audio_magnitude_spectrum = np.abs(audio_stft) ** 2
 
             # Find The Log Magnitude Spectrum
-            audio_file_log_magnitude_spectrum = librosa.power_to_db(audio_file_magnitude_spectrum)
+            audio_log_magnitude_spectrum = librosa.power_to_db(audio_magnitude_spectrum)
 
             plt.figure(figsize=self.figure_size)
-            librosa.display.specshow(data=audio_file_log_magnitude_spectrum, sr=sampling_rate,
+            librosa.display.specshow(data=audio_log_magnitude_spectrum, sr=sampling_rate,
                                      hop_length=hop_length, x_axis="time", y_axis="log")
             plt.title("Log Magnitude Spectrum")
             plt.colorbar(format="%+2.f")
             plt.show()
 
-        return audio_file_stft
+        return audio_stft
 
     def get_mfccs(self, audio, number_of_melbands=13, visualize=False):
 
@@ -204,14 +204,20 @@ class FeatureExtraction:
         if visualize:
             plt.figure(figsize=self.figure_size)
 
-            frames = range(len(audio_spectral_centroid[0]))
-            time_axis = librosa.time_to_frames(frames, sr=sampling_rate,
-                                               n_fft=frame_length, hop_length=hop_length)
+            # frames = range(len(audio_spectral_centroid[0]))
+            # time_axis = librosa.time_to_frames(frames, sr=sampling_rate,
+            #                                    n_fft=frame_length, hop_length=hop_length)
+
+            time_axis = librosa.times_like(audio_spectral_centroid, sr=sampling_rate,
+                                           n_fft=frame_length, hop_length=hop_length)
 
             plt.plot(time_axis, audio_spectral_centroid[0])
+            plt.title("Spectral Centroid")
+            plt.xlabel("Time")
+            plt.ylabel("Frequency (Hz)")
             plt.show()
 
-        return audio_spectral_centroid[0]
+        return audio_spectral_centroid
 
     def get_spectral_bandwidth(self, audio=None, audio_stft=None, visualize=False):
 
@@ -239,14 +245,64 @@ class FeatureExtraction:
         if visualize:
             plt.figure(figsize=self.figure_size)
 
-            frames = range(len(audio_spectral_bandwidth[0]))
-            time_axis = librosa.time_to_frames(frames, sr=sampling_rate,
-                                               n_fft=frame_length, hop_length=hop_length)
+            # frames = range(len(audio_spectral_bandwidth[0]))
+            # time_axis = librosa.time_to_frames(frames, sr=sampling_rate,
+            #                                    n_fft=frame_length, hop_length=hop_length)
+
+            time_axis = librosa.times_like(audio_spectral_bandwidth, sr=sampling_rate,
+                                           n_fft=frame_length, hop_length=hop_length)
 
             plt.plot(time_axis, audio_spectral_bandwidth[0])
+            plt.title("Spectral Bandwidth")
+            plt.ylabel("Frequency (Hz)")
             plt.show()
 
-        return audio_spectral_bandwidth[0]
+        return audio_spectral_bandwidth
+
+    def plot_spectral_centroid_bandwidth(self, audio=None, audio_stft=None):
+
+        sampling_rate = self.sampling_rate
+        frame_length = self.frame_length
+        hop_length = self.hop_length
+        window_length = self.window_length
+        window_function_array = self.window_function_array
+
+        if audio is not None:
+            audio_stft = librosa.stft(audio, n_fft=frame_length, hop_length=hop_length,
+                                      win_length=window_length, window=window_function_array)
+
+            audio_spectral_centroid = self.get_spectral_centroid(audio_stft=audio_stft)
+            audio_spectral_bandwidth = self.get_spectral_bandwidth(audio_stft=audio_stft)
+
+        else:
+            audio_spectral_centroid = self.get_spectral_centroid(audio_stft=audio_stft)
+            audio_spectral_bandwidth = self.get_spectral_bandwidth(audio_stft=audio_stft)
+
+        # Find The Magnitude Spectrum
+        audio_magnitude_spectrum = np.abs(audio_stft) ** 2
+
+        # Find The Log Magnitude Spectrum
+        audio_log_magnitude_spectrum = librosa.power_to_db(audio_magnitude_spectrum)
+
+        plt.figure(figsize=self.figure_size)
+
+        librosa.display.specshow(data=audio_log_magnitude_spectrum, sr=sampling_rate,
+                                 hop_length=hop_length, x_axis="time", y_axis="log")
+
+        plt.title("Spectral Centroid and Bandwidth")
+        plt.colorbar(format="%+2.f")
+
+        time_axis = librosa.times_like(audio_spectral_centroid, sr=sampling_rate,
+                                       n_fft=frame_length, hop_length=hop_length)
+
+        plt.plot(time_axis, audio_spectral_centroid[0],
+                 color='cyan', linewidth=3, label="Centroid")
+        plt.plot(time_axis, audio_spectral_bandwidth[0],
+                 color='yellowgreen', linewidth=3, label="Bandwidth")
+        plt.legend(loc='lower right')
+        plt.show()
+
+        return True
 
     def vorbis_window(self, visualize=False):
         """
