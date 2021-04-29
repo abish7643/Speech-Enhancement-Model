@@ -27,7 +27,7 @@
     ```
    Alternatively, the required libraries can be installed by
    ```sh
-   pip3 install librosa matplotlib notebook IPython
+   pip3 install librosa matplotlib notebook IPython tensorflow
    ```
     
 <!--
