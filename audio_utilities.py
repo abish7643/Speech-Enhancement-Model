@@ -47,6 +47,8 @@ class FeatureExtraction:
             librosa.display.specshow(data=audio_log_magnitude_spectrum, sr=sampling_rate,
                                      hop_length=hop_length, x_axis="time", y_axis="log")
             plt.title("Log Magnitude Spectrum")
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
             plt.colorbar(format="%+2.f")
             plt.show()
 
@@ -63,6 +65,8 @@ class FeatureExtraction:
                                      x_axis="time", y_axis="mel")
             plt.colorbar(format="%+2.f")
             plt.title("MFCCs ({})".format(number_of_melbands))
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
             plt.show()
 
         return mfccs
@@ -96,6 +100,8 @@ class FeatureExtraction:
                                      x_axis="time", y_axis="mel")
             plt.colorbar(format="%+2.f")
             plt.title("Log Mel Spectrogram")
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
             plt.show()
 
             plt.figure(figsize=self.figure_size)
@@ -103,6 +109,8 @@ class FeatureExtraction:
                                      x_axis="time", y_axis="mel")
             plt.colorbar(format="%+2.f")
             plt.title("MFCCs ({})".format(number_of_melbands))
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
             plt.show()
 
         return mfccs
@@ -120,18 +128,22 @@ class FeatureExtraction:
 
         if visualize:
             plt.figure(figsize=self.figure_size)
-            librosa.display.specshow(data=delta_mfcc, sr=self.sampling_rate, hop_length=self.hop_length,
+            librosa.display.specshow(data=delta_mfcc, sr=self.sampling_rate,
                                      x_axis="time", y_axis="mel")
             plt.colorbar(format="%+2.f")
             plt.title("Delta MFCC ({})".format(number_of_melbands))
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
             plt.show()
 
             if delta_delta:
                 plt.figure(figsize=self.figure_size)
-                librosa.display.specshow(data=delta2_mfcc, sr=self.sampling_rate, hop_length=self.hop_length,
+                librosa.display.specshow(data=delta2_mfcc, sr=self.sampling_rate,
                                          x_axis="time", y_axis="mel")
                 plt.colorbar(format="%+2.f")
                 plt.title("Delta Delta MFCC ({})".format(number_of_melbands))
+                plt.xlabel("Time (s)")
+                plt.ylabel("Frequency (Hz)")
                 plt.show()
 
         return delta_mfcc, delta2_mfcc
@@ -172,6 +184,8 @@ class FeatureExtraction:
             plt.plot(time_axis, fundamental_frequencies, color='cyan', linewidth=3)
             plt.colorbar(format="%+2.f")
             plt.title("Fundamental Frequency")
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
 
             # plt.plot(time_axis, voiced_flags * 150, color='r', linewidth=3)
             # plt.plot(time_axis, voiced_prob * 100, color='b', linewidth=3)
@@ -213,7 +227,7 @@ class FeatureExtraction:
 
             plt.plot(time_axis, audio_spectral_centroid[0])
             plt.title("Spectral Centroid")
-            plt.xlabel("Time")
+            plt.xlabel("Time (s)")
             plt.ylabel("Frequency (Hz)")
             plt.show()
 
@@ -254,6 +268,7 @@ class FeatureExtraction:
 
             plt.plot(time_axis, audio_spectral_bandwidth[0])
             plt.title("Spectral Bandwidth")
+            plt.xlabel("Time (s)")
             plt.ylabel("Frequency (Hz)")
             plt.show()
 
@@ -299,6 +314,8 @@ class FeatureExtraction:
                  color='cyan', linewidth=3, label="Centroid")
         plt.plot(time_axis, audio_spectral_bandwidth[0],
                  color='yellowgreen', linewidth=3, label="Bandwidth")
+        plt.xlabel("Time (s)")
+        plt.ylabel("Frequency (Hz)")
         plt.legend(loc='lower right')
         plt.show()
 
