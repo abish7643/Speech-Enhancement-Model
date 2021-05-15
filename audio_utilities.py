@@ -57,7 +57,8 @@ class FeatureExtraction:
     def get_mfccs(self, audio, number_of_melbands=13, visualize=False):
 
         # Find MFCCs
-        mfccs = librosa.feature.mfcc(y=audio, n_mfcc=number_of_melbands, sr=self.sampling_rate)
+        mfccs = librosa.feature.mfcc(y=audio, n_mfcc=number_of_melbands,
+                                     sr=self.sampling_rate, hop_length=self.hop_length)
 
         if visualize:
             plt.figure(figsize=self.figure_size)
@@ -96,15 +97,6 @@ class FeatureExtraction:
 
         if visualize:
             plt.figure(figsize=self.figure_size)
-            librosa.display.specshow(data=audio_log_mel_spectrogram, sr=sampling_rate,
-                                     x_axis="time", y_axis="mel")
-            plt.colorbar(format="%+2.f")
-            plt.title("Log Mel Spectrogram")
-            plt.xlabel("Time (s)")
-            plt.ylabel("Frequency (Hz)")
-            plt.show()
-
-            plt.figure(figsize=self.figure_size)
             librosa.display.specshow(data=mfccs, sr=sampling_rate, hop_length=hop_length,
                                      x_axis="time", y_axis="mel")
             plt.colorbar(format="%+2.f")
@@ -115,14 +107,45 @@ class FeatureExtraction:
 
         return mfccs
 
+    def get_melspectrogram(self, audio_stft, number_of_melbands=13, visualize=False):
+
+        sampling_rate = self.sampling_rate
+        frame_length = self.frame_length
+        hop_length = self.hop_length
+        window_function_array = self.window_function_array
+
+        # Calculate Magnitude Spectrum
+        audio_magnitude_spectrum = np.abs(audio_stft) ** 2
+
+        # Convert to Mel Scale -> Mel Spectrogram
+        audio_mel_spectrogram = librosa.feature.melspectrogram(S=audio_magnitude_spectrum,
+                                                               sr=sampling_rate, n_fft=frame_length,
+                                                               hop_length=hop_length, n_mels=number_of_melbands,
+                                                               window=window_function_array)
+
+        # Convert to Log Mel Spectrogram
+        # audio_log_mel_spectrogram = librosa.power_to_db(audio_mel_spectrogram)
+
+        if visualize:
+            plt.figure(figsize=self.figure_size)
+            librosa.display.specshow(data=audio_mel_spectrogram, sr=sampling_rate,
+                                     x_axis="time", y_axis="mel")
+            plt.colorbar(format="%+2.f")
+            plt.title("Log Mel Spectrogram")
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
+            plt.show()
+
+        return audio_mel_spectrogram
+
     def get_mfccs_delta(self, mfccs, delta_delta=True, number_of_melbands=13, visualize=False):
 
         # Compute Derivative of MFCC Per Frame
-        delta_mfcc = librosa.feature.delta(mfccs)
+        delta_mfcc = librosa.feature.delta(mfccs)[:number_of_melbands]
 
         if delta_delta:
             # Compute Double Derivative of MFCC Per Frame
-            delta2_mfcc = librosa.feature.delta(mfccs, order=2)
+            delta2_mfcc = librosa.feature.delta(mfccs, order=2)[:number_of_melbands]
         else:
             delta2_mfcc = False
 
@@ -182,6 +205,8 @@ class FeatureExtraction:
                                      hop_length=hop_length, x_axis="time", y_axis="log")
             # Plot Fundamental Frequencies
             plt.plot(time_axis, fundamental_frequencies, color='cyan', linewidth=3)
+            plt.plot(time_axis, voiced_flags * 150, color='r', linewidth=3)
+            plt.plot(time_axis, voiced_prob * 100, color='white', linewidth=3)
             plt.colorbar(format="%+2.f")
             plt.title("Fundamental Frequency")
             plt.xlabel("Time (s)")

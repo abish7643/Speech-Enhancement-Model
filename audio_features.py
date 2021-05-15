@@ -15,20 +15,22 @@ feature_extractor = FeatureExtraction(sampling_rate=sampling_rate,
                                       frame_length=frame_length, hop_length=hop_length,
                                       window_length=window_length, window_function=window_function)
 
-speech = feature_extractor.load_audiofile(audio_file=speech_sample, title="Speech Audio", visualize=True)
+speech = feature_extractor.load_audiofile(audio_file=speech_sample, title="Speech Audio", visualize=False)
 
-feature_extractor.fft(audio=speech, visualize=True)
+feature_extractor.fft(audio=speech, visualize=False)
 
-vorbis_window = feature_extractor.vorbis_window(visualize=True)
+vorbis_window = feature_extractor.vorbis_window(visualize=False)
 
-speech_sample_stft = feature_extractor.stft(audio=speech, visualize=True)
+speech_sample_stft = feature_extractor.stft(audio=speech, visualize=False)
 
-speech_sample_mfcc = feature_extractor.get_mfccs(audio=speech, visualize=True)
+# speech_sample_mfcc = feature_extractor.get_mfccs(audio=speech, number_of_melbands=22,
+#                                                  visualize=True)
 
-# speech_sample_mfcc = feature_extractor.get_mfccs_from_spectrogram(audio_stft=speech_sample_stft,
-#                                                                   number_of_melbands=13, visualize=False)
+speech_sample_mfcc = feature_extractor.get_mfccs_from_spectrogram(audio_stft=speech_sample_stft,
+                                                                  number_of_melbands=22, visualize=True)
 
-speech_sample_mfcc_delta, speech_sample_mfcc_delta2 = feature_extractor.get_mfccs_delta(mfccs=speech_sample_mfcc,
+speech_sample_mfcc_delta, speech_sample_mfcc_delta2 = feature_extractor.get_mfccs_delta(mfccs=speech_sample_mfcc[:8],
+                                                                                        number_of_melbands=8,
                                                                                         delta_delta=True,
                                                                                         visualize=True)
 
@@ -37,9 +39,9 @@ speech_sample_mfcc_delta, speech_sample_mfcc_delta2 = feature_extractor.get_mfcc
 #                                                                                      visualize=True)
 
 spectral_centroid = feature_extractor.get_spectral_centroid(audio_stft=speech_sample_stft,
-                                                            visualize=True)
+                                                            visualize=False)
 
 spectral_bandwidth = feature_extractor.get_spectral_bandwidth(audio_stft=speech_sample_stft,
-                                                              visualize=True)
+                                                              visualize=False)
 
-feature_extractor.plot_spectral_centroid_bandwidth(audio=speech)
+# feature_extractor.plot_spectral_centroid_bandwidth(audio=speech)

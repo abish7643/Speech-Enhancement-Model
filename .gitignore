@@ -140,3 +140,12 @@ cython_debug/
 # IDE / Test Editors
 .vscode/
 .idea/
+
+# Dataset Folders
+/Prototyping/Dataset Structure/Dataset/Noise/
+/Prototyping/Dataset Structure/Dataset/Speech/
+/Prototyping/Dataset Structure/Noise Added Dataset/
+
+# npz file
+*.npz
+/Prototyping/feature_dataset.npz
