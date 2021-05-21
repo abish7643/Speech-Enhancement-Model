@@ -148,7 +148,8 @@ def generate_dataset(noise_dir, speech_dir, snr=None):
                         features_speech = np.concatenate((features_speech, features), axis=1)
                         features_gain = np.concatenate((features_gain, gains), axis=1)
 
-                        print("Added Noise ({}dB) to Speech: ".format(snr[random_snr]), features_speech.shape, features_gain.shape, "\n")
+                        print("Added Noise ({}dB) to Speech: ".format(snr[random_snr]), features_speech.shape,
+                              features_gain.shape, "\n")
 
                         break
 
@@ -158,26 +159,26 @@ def generate_dataset(noise_dir, speech_dir, snr=None):
     return features_speech, features_gain
 
 
-# Generate Dataset
-features_speech_1, features_gain_1 = generate_dataset(noise_dir=noise_database_path,
-                                                      speech_dir=speech_database_path_timit,
-                                                      snr=snr_req)
-features_speech_2, features_gain_2 = generate_dataset(noise_dir=noise_database_path,
-                                                      speech_dir=speech_database_path_tsp,
-                                                      snr=snr_req)
+if __name__ == "__main__":
+    # Generate Dataset
+    features_speech_1, features_gain_1 = generate_dataset(noise_dir=noise_database_path,
+                                                          speech_dir=speech_database_path_timit,
+                                                          snr=snr_req)
+    features_speech_2, features_gain_2 = generate_dataset(noise_dir=noise_database_path,
+                                                          speech_dir=speech_database_path_tsp,
+                                                          snr=snr_req)
 
-filename = "feature_dataset.npz"
+    filename = "feature_dataset.npz"
 
-# Save to File
-print("\nSaving To File {}\n".format(filename))
+    # Save to File
+    print("\nSaving To File {}\n".format(filename))
 
-print("Training Set: {} & {}".format(features_speech_1.shape, features_gain_1.shape))
-print("Test Set: {} & {}".format(features_speech_2.shape, features_gain_2.shape))
+    print("Training Set: {} & {}".format(features_speech_1.shape, features_gain_1.shape))
+    print("Test Set: {} & {}".format(features_speech_2.shape, features_gain_2.shape))
 
-np.savez_compressed(filename,
-                    speech_features_1=features_speech_1, gains_1=features_gain_1,
-                    speech_features_2=features_speech_2, gains_2=features_gain_2)
-
+    np.savez_compressed(filename,
+                        speech_features_1=features_speech_1, gains_1=features_gain_1,
+                        speech_features_2=features_speech_2, gains_2=features_gain_2)
 
 # ==============================================
 
