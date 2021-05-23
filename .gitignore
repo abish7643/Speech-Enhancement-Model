@@ -150,3 +150,9 @@ cython_debug/
 *.npz
 /Prototyping/feature_dataset.npz
 feature_dataset.npz
+feature_dataset_tsp.npz
+feature_dataset_timit.npz
+/weights.npz
+
+/Prototyping/Trained Model/
+Generated Features/
