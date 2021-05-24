@@ -16,7 +16,7 @@ speech_database_paths = ["Prototyping/Dataset Structure/Dataset/Speech/TIMIT COR
                          "Prototyping/Dataset Structure/Dataset/Speech/MS_SNSD"]
 
 save_directory = "Generated Features/"
-feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz", "feature_dataset_ms.npz"]
+feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz", "feature_dataset_ms_iter.npz"]
 generate_from_dataset = [False, False, True]
 
 # Audio Configuration
@@ -96,7 +96,7 @@ def get_features(clean_speech, noisy_speech, melbands=22, delta_melbands=9):
     return noisy_speech_mfcc, noisy_speech_mfcc_delta, noisy_speech_mfcc_delta2, noisy_speech_spec_centroid, noise_speech_spec_bandwidth, speech_melband_gains
 
 
-def generate_dataset(noise_dir, speech_dir, snr=None):
+def generate_dataset(noise_dir, speech_dir, snr=None, use_random_snr=False):
     # Define Array Features
     generated_features_speech = np.ndarray((number_of_features, 0))
     generated_features_gain = np.ndarray((number_of_melbands, 0))
@@ -148,8 +148,28 @@ def generate_dataset(noise_dir, speech_dir, snr=None):
                 noise_file = noise_file[:len(speech_concat)]
 
             # Add Noise to Speech
-            random_snr = random.randint(0, len(snr_req) - 1)
-            noisy_speech = add_noise_speech(speech_concat, noise_file, snr=snr_req[random_snr])
+            noisy_speech = np.array([])
+            random_snr = 0
+
+            if use_random_snr:
+                random_snr = random.randint(0, len(snr_req) - 1)
+                noisy_speech = add_noise_speech(speech_concat, noise_file, snr=snr_req[random_snr])
+                print("Concat Speech Shape : {}, Noisy Speech Shape: {}"
+                      .format(speech_concat.shape, noisy_speech.shape))
+
+            else:
+                # Add Noise with every SNR
+                for snr in snr_req:
+                    noisy_speech_temp = add_noise_speech(speech_concat, noise_file, snr=snr)
+                    noisy_speech = np.concatenate((noisy_speech, noisy_speech_temp))
+
+                # Concat Speech to Match Noisy Speech Length
+                speech_concat_temp = speech_concat
+                for j in range(0, len(snr_req)-1):
+                    speech_concat = np.concatenate((speech_concat, speech_concat_temp))
+
+                print("Concat Speech Shape : {}, Noisy Speech Shape: {}"
+                      .format(speech_concat.shape, noisy_speech.shape))
 
             # Get Features
             mfcc, mfcc_d, mfcc_d2, spec_centroid, spec_bandwidth, gains = get_features(clean_speech=speech_concat,
@@ -162,7 +182,8 @@ def generate_dataset(noise_dir, speech_dir, snr=None):
             generated_features_speech = np.concatenate((generated_features_speech, features), axis=1)
             generated_features_gain = np.concatenate((generated_features_gain, gains), axis=1)
 
-            print("[{}]".format(speech_iterator), "Added Noise to Speech: ",
+            print("[{}]".format(speech_iterator), "Added Noise {}dB to Speech: "
+                  .format(snr_req[random_snr] if use_random_snr else snr_req),
                   generated_features_speech.shape, generated_features_gain.shape, "\n")
 
     except KeyboardInterrupt:
@@ -188,7 +209,7 @@ if __name__ == "__main__":
             # Save even if interrupted
             features_speech, features_gain = generate_dataset(noise_dir=noise_database_path,
                                                               speech_dir=speech_database_paths[i],
-                                                              snr=snr_req)
+                                                              snr=snr_req, use_random_snr=False)
 
             # Save to File
             print("\nSaving To File {}\n".format(save_directory + feature_filename[i]))
