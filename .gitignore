@@ -156,3 +156,5 @@ feature_dataset_timit.npz
 
 /Prototyping/Trained Model/
 Generated Features/
+
+/Prototyping/Model Train Test.ipynb

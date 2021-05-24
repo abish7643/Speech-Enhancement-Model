@@ -10,11 +10,14 @@ from audio_utilities import FeatureExtraction
 
 # Dataset Dir
 noise_database_path = "Prototyping/Dataset Structure/Dataset/Noise"
-speech_database_path_timit = "Prototyping/Dataset Structure/Dataset/Speech/TIMIT CORPUS"
-speech_database_path_tsp = "Prototyping/Dataset Structure/Dataset/Speech/TSP"
+
+speech_database_paths = ["Prototyping/Dataset Structure/Dataset/Speech/TIMIT CORPUS",
+                         "Prototyping/Dataset Structure/Dataset/Speech/TSP",
+                         "Prototyping/Dataset Structure/Dataset/Speech/MS_SNSD"]
 
 save_directory = "Generated Features/"
-feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz"]
+feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz", "feature_dataset_ms.npz"]
+generate_from_dataset = [False, False, True]
 
 # Audio Configuration
 sampling_rate = 16000
@@ -95,8 +98,8 @@ def get_features(clean_speech, noisy_speech, melbands=22, delta_melbands=9):
 
 def generate_dataset(noise_dir, speech_dir, snr=None):
     # Define Array Features
-    features_speech = np.ndarray((number_of_features, 0))
-    features_gain = np.ndarray((number_of_melbands, 0))
+    generated_features_speech = np.ndarray((number_of_features, 0))
+    generated_features_gain = np.ndarray((number_of_melbands, 0))
 
     if snr is None:
         snr = [-5, 0, 5]
@@ -108,115 +111,98 @@ def generate_dataset(noise_dir, speech_dir, snr=None):
 
     speech_iterator, noise_iterator = 0, 0
 
-    while speech_iterator < len(speech_file_paths):
+    try:
+        while speech_iterator < len(speech_file_paths):
 
-        # Iterate Through Noise
-        noise_iterator += 1
+            # Iterate Through Noise
+            noise_iterator += 1
 
-        # Reset Noise Iterator
-        if noise_iterator >= len(noise_file_paths):
-            noise_iterator = 0
+            # Reset Noise Iterator
+            if noise_iterator >= len(noise_file_paths):
+                noise_iterator = 0
 
-        # Define Concatenated Speech
-        speech_concat = np.array([])
+            # Define Concatenated Speech
+            speech_concat = np.array([])
 
-        # Load Noise
-        noise_file = audio_utils.load_audiofile(noise_file_paths[noise_iterator])
-        print("[{}]".format(noise_iterator), "Currently Used Noise:", noise_file_paths[noise_iterator], len(noise_file))
+            # Load Noise
+            noise_file = audio_utils.load_audiofile(noise_file_paths[noise_iterator])
+            print("[{}]".format(noise_iterator), "Currently Used Noise:", noise_file_paths[noise_iterator],
+                  len(noise_file))
 
-        while len(speech_concat) < len(noise_file):
-            # Load Speech
-            speech_file = audio_utils.load_audiofile(speech_file_paths[speech_iterator])
-            print("Currently Used Speech:", speech_file_paths[speech_iterator], len(speech_file))
+            while len(speech_concat) < len(noise_file):
+                # Load Speech
+                speech_file = audio_utils.load_audiofile(speech_file_paths[speech_iterator])
+                print("Currently Used Speech:", speech_file_paths[speech_iterator], len(speech_file))
 
-            # Concat Speech
-            speech_concat = np.concatenate((speech_concat, speech_file))
-            speech_iterator += 1
+                # Concat Speech
+                speech_concat = np.concatenate((speech_concat, speech_file))
+                speech_iterator += 1
 
-            if speech_iterator >= len(speech_file_paths):
-                break
+                if speech_iterator >= len(speech_file_paths):
+                    break
 
-        # Truncate Speech Array to Noise Length
-        if len(speech_concat) >= len(noise_file):
-            speech_concat = speech_concat[:len(noise_file)]
-        else:
-            noise_file = noise_file[:len(speech_concat)]
+            # Truncate Speech Array to Noise Length
+            if len(speech_concat) >= len(noise_file):
+                speech_concat = speech_concat[:len(noise_file)]
+            else:
+                noise_file = noise_file[:len(speech_concat)]
 
-        # Add Noise to Speech
-        random_snr = random.randint(0, len(snr_req) - 1)
-        noisy_speech = add_noise_speech(speech_concat, noise_file, snr=snr_req[random_snr])
+            # Add Noise to Speech
+            random_snr = random.randint(0, len(snr_req) - 1)
+            noisy_speech = add_noise_speech(speech_concat, noise_file, snr=snr_req[random_snr])
 
-        # Get Features
-        mfcc, mfcc_d, mfcc_d2, spec_centroid, spec_bandwidth, gains = get_features(clean_speech=speech_concat,
-                                                                                   noisy_speech=noisy_speech)
+            # Get Features
+            mfcc, mfcc_d, mfcc_d2, spec_centroid, spec_bandwidth, gains = get_features(clean_speech=speech_concat,
+                                                                                       noisy_speech=noisy_speech)
 
-        # Add Features to Array
-        features = np.concatenate((mfcc, mfcc_d, mfcc_d2,
-                                   spec_bandwidth, spec_centroid), axis=0)
+            # Add Features to Array
+            features = np.concatenate((mfcc, mfcc_d, mfcc_d2,
+                                       spec_bandwidth, spec_centroid), axis=0)
 
-        features_speech = np.concatenate((features_speech, features), axis=1)
-        features_gain = np.concatenate((features_gain, gains), axis=1)
+            generated_features_speech = np.concatenate((generated_features_speech, features), axis=1)
+            generated_features_gain = np.concatenate((generated_features_gain, gains), axis=1)
 
-        print("[{}]".format(speech_iterator), "Added Noise to Speech: ",
-              features_speech.shape, features_gain.shape, "\n")
+            print("[{}]".format(speech_iterator), "Added Noise to Speech: ",
+                  generated_features_speech.shape, generated_features_gain.shape, "\n")
 
-    return features_speech, features_gain
+    except KeyboardInterrupt:
+        print("Generation was Interrupted")
+
+    return generated_features_speech, generated_features_gain
 
 
 if __name__ == "__main__":
     # Generate Dataset
 
-    # =================TIMIT=================
+    # Iterate through speech
+    for i in range(len(speech_database_paths)):
 
-    # Define Feature Arrays
-    features_speech_1 = np.ndarray((number_of_features, 0))
-    features_gain_1 = np.ndarray((number_of_melbands, 0))
+        # Check boolean for generation from a particular path
+        if generate_from_dataset[i]:
+            print("\nGenerating from {}".format(speech_database_paths[i]))
 
-    # Save even if interrupted
-    try:
-        features_speech_1, features_gain_1 = generate_dataset(noise_dir=noise_database_path,
-                                                              speech_dir=speech_database_path_timit,
+            # Define Feature Arrays
+            # features_speech = np.ndarray((number_of_features, 0))
+            # features_gain = np.ndarray((number_of_melbands, 0))
+
+            # Save even if interrupted
+            features_speech, features_gain = generate_dataset(noise_dir=noise_database_path,
+                                                              speech_dir=speech_database_paths[i],
                                                               snr=snr_req)
-    except KeyboardInterrupt:
-        print("Generation was Interrupted")
 
-    # Save to File
-    print("\nSaving To File {}\n".format(save_directory + feature_filename[0]))
-    print("Shape: {} & {}".format(features_speech_1.shape, features_gain_1.shape))
+            # Save to File
+            print("\nSaving To File {}\n".format(save_directory + feature_filename[i]))
+            print("Shape: {} & {}".format(features_speech.shape, features_gain.shape))
 
-    np.savez_compressed(save_directory + feature_filename[0],
-                        speech_features=features_speech_1, gains=features_gain_1)
+            np.savez_compressed(save_directory + feature_filename[i],
+                                speech_features=features_speech, gains=features_gain)
 
-    # Clear Memory
-    features_speech_1, features_gain_1 = 0, 0
+            # Clear Memory
+            features_speech, features_gain = 0, 0
+        else:
+            print("\nSkipping {}".format(speech_database_paths[i]))
 
-    # =======================================
-
-    # ==================TSP==================
-
-    # Define Feature Arrays
-    features_speech_2 = np.ndarray((number_of_features, 0))
-    features_gain_2 = np.ndarray((number_of_melbands, 0))
-
-    # Save even if interrupted
-    try:
-        features_speech_2, features_gain_2 = generate_dataset(noise_dir=noise_database_path,
-                                                              speech_dir=speech_database_path_tsp,
-                                                              snr=snr_req)
-    except KeyboardInterrupt:
-        print("Generation was Interrupted")
-
-    # Save to File
-    print("\nSaving To File {}\n".format(save_directory + feature_filename[1]))
-    print("Shape: {} & {}".format(features_speech_2.shape, features_gain_2.shape))
-
-    np.savez_compressed(save_directory + feature_filename[1],
-                        speech_features=features_speech_2, gains=features_gain_2)
-
-    # Clear Memory
-    features_speech_2, features_gain_2 = 0, 0
-
-    # =======================================
+    print("\nGeneration Completed")
 
 # ==============================================
 
