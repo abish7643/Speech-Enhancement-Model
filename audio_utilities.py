@@ -2,16 +2,18 @@ import librosa
 import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
+import python_speech_features
 
 
 class FeatureExtraction:
     def __init__(self, sampling_rate=22050, frame_length=1024, hop_length=512,
-                 window_length=1024, window_function="hamming", debug=False):
+                 window_length=1024, window_length_t=0.032, window_function="hamming", debug=False):
 
         self.sampling_rate = sampling_rate
         self.frame_length = frame_length
         self.hop_length = hop_length
         self.window_length = window_length
+        self.window_length_t = window_length_t
         self.window_function = window_function
         self.figure_size = (18, 5)
         self.debug = debug
@@ -57,8 +59,17 @@ class FeatureExtraction:
     def get_mfccs(self, audio, number_of_melbands=13, visualize=False):
 
         # Find MFCCs
-        mfccs = librosa.feature.mfcc(y=audio, n_mfcc=number_of_melbands,
-                                     sr=self.sampling_rate, hop_length=self.hop_length)
+        #     # mfccs = np.concatenate((mfccs, mfccs_temp), axis=1)
+        # else:
+        # mfccs = librosa.feature.mfcc(y=audio, n_mfcc=number_of_melbands,
+        #                              sr=self.sampling_rate, hop_length=self.hop_length)
+
+        mfccs = python_speech_features.mfcc(signal=audio, samplerate=self.sampling_rate,
+                                            numcep=number_of_melbands, nfilt=number_of_melbands,
+                                            winlen=self.window_length_t, winstep=self.window_length_t,
+                                            nfft=self.window_length)
+        mfccs = mfccs.transpose()
+
 
         if visualize:
             plt.figure(figsize=self.figure_size)

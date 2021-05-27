@@ -78,8 +78,10 @@ def get_melbands_gain(clean_speech_stft, noisy_speech_stft, melbands=22):
 def get_features(clean_speech, noisy_speech, melbands=22, delta_melbands=9):
     # Extract MFCC & Relative Derivatives
     noisy_speech_stft = audio_utils.stft(noisy_speech)
-    noisy_speech_mfcc = audio_utils.get_mfccs_from_spectrogram(noisy_speech_stft,
-                                                               number_of_melbands=melbands)
+    # noisy_speech_mfcc = audio_utils.get_mfccs_from_spectrogram(noisy_speech_stft,
+    #                                                            number_of_melbands=melbands)
+    noisy_speech_mfcc = audio_utils.get_mfccs(noisy_speech, number_of_melbands=22)
+
     noisy_speech_mfcc_delta, noisy_speech_mfcc_delta2 = audio_utils.get_mfccs_delta(noisy_speech_mfcc,
                                                                                     number_of_melbands=delta_melbands)
 
@@ -165,7 +167,7 @@ def generate_dataset(noise_dir, speech_dir, snr=None, use_random_snr=False):
 
                 # Concat Speech to Match Noisy Speech Length
                 speech_concat_temp = speech_concat
-                for j in range(0, len(snr_req)-1):
+                for j in range(0, len(snr_req) - 1):
                     speech_concat = np.concatenate((speech_concat, speech_concat_temp))
 
                 print("Concat Speech Shape : {}, Noisy Speech Shape: {}"
@@ -175,9 +177,16 @@ def generate_dataset(noise_dir, speech_dir, snr=None, use_random_snr=False):
             mfcc, mfcc_d, mfcc_d2, spec_centroid, spec_bandwidth, gains = get_features(clean_speech=speech_concat,
                                                                                        noisy_speech=noisy_speech)
 
+            # print(mfcc.shape[1], mfcc_d.shape[1], mfcc_d.shape[1],
+            #       spec_bandwidth.shape[1], spec_bandwidth.shape[1], gains.shape[1])
+
+            length_features = [mfcc.shape[1], mfcc_d.shape[1], mfcc_d.shape[1],
+                               spec_bandwidth.shape[1], spec_bandwidth.shape[1], gains.shape[1]]
+            min_length = min(length_features)
+
             # Add Features to Array
-            features = np.concatenate((mfcc, mfcc_d, mfcc_d2,
-                                       spec_bandwidth, spec_centroid), axis=0)
+            features = np.concatenate((mfcc[:, :min_length], mfcc_d[:, :min_length], mfcc_d2[:, :min_length],
+                                       spec_bandwidth[:, :min_length], spec_centroid[:, :min_length]), axis=0)
 
             generated_features_speech = np.concatenate((generated_features_speech, features), axis=1)
             generated_features_gain = np.concatenate((generated_features_gain, gains), axis=1)
