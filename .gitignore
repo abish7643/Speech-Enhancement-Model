@@ -144,6 +144,7 @@ cython_debug/
 # Dataset Folders
 /Prototyping/Dataset Structure/Dataset/Noise/
 /Prototyping/Dataset Structure/Dataset/Speech/
+/Prototyping/Dataset Structure/Dataset/MS/
 /Prototyping/Dataset Structure/Noise Added Dataset/
 
 # npz file

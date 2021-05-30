@@ -70,7 +70,6 @@ class FeatureExtraction:
                                             nfft=self.window_length)
         mfccs = mfccs.transpose()
 
-
         if visualize:
             plt.figure(figsize=self.figure_size)
             librosa.display.specshow(data=mfccs, sr=self.sampling_rate,
@@ -440,3 +439,20 @@ class FeatureExtraction:
             plt.show()
 
         return audio_spectrum
+
+    def get_chroma_cqt(self, audio, visualize=False):
+
+        chrome_cqt = librosa.feature.chroma_cqt(y=audio, hop_length=self.hop_length,
+                                                sr=self.sampling_rate)
+
+        if visualize:
+            plt.figure(figsize=self.figure_size)
+            librosa.display.specshow(data=chrome_cqt, sr=self.sampling_rate,
+                                     x_axis="time", y_axis="mel")
+            plt.colorbar(format="%+2.f")
+            plt.title("Chroma CQT")
+            plt.xlabel("Time (s)")
+            plt.ylabel("Frequency (Hz)")
+            plt.show()
+
+        return chrome_cqt
