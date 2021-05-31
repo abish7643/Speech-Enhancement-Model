@@ -93,7 +93,8 @@ def plot_wave(audio, sampling_rate=16000, evaluate_audio=None, title=None):
 def equalize_noisy_signal(noisy_speech, gains, melbands=22, sampling_rate=16000, hop_length=512, visualize=False):
 
     # Compute Freq Bands
-    freqbands = librosa.filters.mel_frequencies(n_mels=melbands, fmax=sampling_rate / 2)
+    freqbands = librosa.filters.mel_frequencies(n_mels=melbands, fmax=sampling_rate / 2,
+                                                fmin=20)
     freqbands = freqbands[1:-1]
 
     # Get Filter Coefficients

@@ -74,7 +74,7 @@ def normalize(data, n, quantize=True):
     limit = pow(2, n)
     data = np.clip(data, -limit, limit)/limit
     if quantize:
-        data = np.round(data * 128)/ 128.0
+        data = np.round(data * 128) / 128.0
     return data
 
 
@@ -381,8 +381,8 @@ if __name__ == "__main__":
     if generate_from_dataset_ms:
 
         # Microsoft Scalable Database Directories
-        ms_noisy_dataset = "Dataset Structure/Dataset/MS/NoisySpeech_training"
-        ms_clean_dataset = "Dataset Structure/Dataset/MS/CleanSpeech_training"
+        ms_noisy_dataset = "Prototyping/Dataset Structure/Dataset/MS/NoisySpeech_training"
+        ms_clean_dataset = "Prototyping/Dataset Structure/Dataset/MS/CleanSpeech_training"
 
         print("\nGenerating from {}".format(ms_noisy_dataset))
 
@@ -390,6 +390,7 @@ if __name__ == "__main__":
             noisy_speech_dir=ms_noisy_dataset, clean_speech_dir=ms_clean_dataset, snr_levels=4
         )
 
+        print("\nSaving as {} in {}".format(feature_filename_ms, save_directory))
         np.savez_compressed(save_directory + feature_filename_ms,
                             speech_features=speech_features, gains=band_gains)
 

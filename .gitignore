@@ -155,7 +155,7 @@ feature_dataset_tsp.npz
 feature_dataset_timit.npz
 /weights.npz
 
-/Prototyping/Trained Model/
+/Prototyping/Trained Model/model.h5
 Generated Features/
 
 /Prototyping/Model Train Test.ipynb
