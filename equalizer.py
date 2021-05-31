@@ -8,7 +8,6 @@ from generate_dataset import add_noise_speech, get_melbands_gain
 
 
 def iir_filter_design(band_frequency, sampling_rate=16000, order=1):
-
     # Filter Coefficients
     b, a = [], []
 
@@ -27,7 +26,6 @@ def iir_filter_design(band_frequency, sampling_rate=16000, order=1):
 
 
 def bandpass_filter(noisy_speech, b, a, hop_length, gains):
-
     # Define Filtered Output
     y = np.zeros(len(noisy_speech))
 
@@ -50,7 +48,7 @@ def bandpass_filter(noisy_speech, b, a, hop_length, gains):
     return y
 
 
-def plot_frequency_response(b, a=None, sampling_frequency=16000):
+def plot_frequency_response(b, a=None, sampling_frequency=16000, title="", save=False):
     if len(a) != len(b):
         a = np.ones(len(b))
 
@@ -65,9 +63,11 @@ def plot_frequency_response(b, a=None, sampling_frequency=16000):
         plt.plot(w * 0.15915494327 * sampling_frequency,
                  20 * np.log10(np.maximum(abs(h), 1e-5)))
 
-    plt.title('Frequency Response')
+    plt.title(title)
     plt.ylabel('Amplitude (dB)')
     plt.xlabel('Frequency (Hz)')
+    if save:
+        plt.savefig("".join(["../", title, ".png"]))
     plt.show()
 
 
@@ -91,7 +91,6 @@ def plot_wave(audio, sampling_rate=16000, evaluate_audio=None, title=None):
 
 
 def equalize_noisy_signal(noisy_speech, gains, melbands=22, sampling_rate=16000, hop_length=512, visualize=False):
-
     # Compute Freq Bands
     freqbands = librosa.filters.mel_frequencies(n_mels=melbands, fmax=sampling_rate / 2,
                                                 fmin=20)
@@ -101,7 +100,7 @@ def equalize_noisy_signal(noisy_speech, gains, melbands=22, sampling_rate=16000,
     b, a = iir_filter_design(freqbands, sampling_rate=sampling_rate, order=1)
 
     if visualize:
-        plot_frequency_response(b, a)
+        plot_frequency_response(b, a, save=True, title="Frequency Response")
 
     # Define Filtered Signal
     filtered_signal = np.zeros(len(noisy_speech))
@@ -115,7 +114,6 @@ def equalize_noisy_signal(noisy_speech, gains, melbands=22, sampling_rate=16000,
 
 
 def example(melbands=22, snr=25, speech_concat=2):
-
     # Example Audio Files
     noise_file = "Prototyping/Audio Samples/Kindergarten_Noise.wav"
     speech_file = "Prototyping/Audio Samples/Female_Speech.WAV"
@@ -156,9 +154,9 @@ def example(melbands=22, snr=25, speech_concat=2):
     gains = gains.T
 
     # Filter Signal
-    filtered_signal = equalize_noisy_signal(noisy_speech=noisy_speech,
-                                            gains=gains, melbands=melbands,
-                                            sampling_rate=sampling_rate, hop_length=hop_length)
+    filtered_signal = equalize_noisy_signal(noisy_speech=noisy_speech, gains=gains,
+                                            melbands=melbands, sampling_rate=sampling_rate,
+                                            hop_length=hop_length, visualize=True)
 
     # Plot Waveforms
     plot_wave(speech, sampling_rate=sampling_rate, title="Clean Speech")
