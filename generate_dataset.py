@@ -22,7 +22,7 @@ save_directory = "Generated Features/"
 feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz", "feature_dataset_ms_iter.npz"]
 generate_from_dataset = [False, False, False]
 
-feature_filename_ms = "feature_dataset_ms_psf_.npz"
+feature_filename_ms = "feature_dataset_ms_librosa_.npz"
 generate_from_dataset_ms = True
 
 # Audio Configuration
@@ -72,7 +72,7 @@ def add_noise_speech(speech, noise, snr=5):
 
 def normalize(data, n, quantize=True):
     limit = pow(2, n)
-    data = np.clip(data, -limit, limit)/limit
+    data = np.clip(data, -limit, limit) / limit
     if quantize:
         data = np.round(data * 128) / 128.0
     return data
@@ -240,7 +240,6 @@ def generate_dataset(noise_dir, speech_dir, snr=None, use_random_snr=False, norm
 
 
 def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
-
     clean_speech_files = get_filepaths(
         dataset_dir=clean_speech_dir,
         get_duration=True
@@ -250,11 +249,13 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
         get_duration=True
     )
 
-    mfccs = np.ndarray((0, number_of_melbands))
-    gains = np.ndarray((0, number_of_melbands))
+    # mfccs = np.ndarray((0, number_of_melbands))
+    # gains = np.ndarray((0, number_of_melbands))
+    mfccs = np.ndarray((number_of_melbands, 0))
+    gains = np.ndarray((number_of_melbands, 0))
     # spec_centroid = np.ndarray((0, 1))
     # spec_bandwidth = np.ndarray((0, 1))
-    total_energy = np.array([])
+    # total_energy = np.array([])
 
     clean_speech_iterator = 0
 
@@ -281,11 +282,14 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
         (rate, _speech) = wavfile.read(clean_speech_file)
         _speech = _speech / 32768
 
+        # Take STFT
+        _speech_stft = audio_utils.stft(_speech)
+
         # Compute Band Energy of Clean Speech
-        _band_energy_speech, _total_energy_speech = fbank(
-            signal=_speech, samplerate=16000, winlen=0.032, winstep=0.016,
-            nfft=1024, nfilt=22, lowfreq=20, highfreq=8000
-        )
+        # _band_energy_speech, _total_energy_speech = fbank(
+        #     signal=_speech, samplerate=16000, winlen=0.032, winstep=0.016,
+        #     nfft=1024, nfilt=22, lowfreq=20, highfreq=8000
+        # )
 
         # Iterate through Noisy Speech
         noisy_speech_iterator = 0
@@ -295,20 +299,28 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
             (rate, _noise) = wavfile.read(file)
             _noise = _noise / 32768
 
+            # Take STFT
+            _noise_stft = audio_utils.stft(_noise)
+
             # Compute MFCC
-            _mfcc = mfcc(
-                signal=_noise, samplerate=16000, winlen=0.032, winstep=0.016,
-                nfft=1024, nfilt=22, numcep=22, lowfreq=20, highfreq=8000
-            )
+            # _mfcc = mfcc(
+            #     signal=_noise, samplerate=16000, winlen=0.032, winstep=0.016,
+            #     nfft=1024, nfilt=22, numcep=22, lowfreq=20, highfreq=8000
+            # )
+            _mfcc = audio_utils.get_mfccs_from_spectrogram(audio_stft=_noise_stft,
+                                                           number_of_melbands=number_of_melbands)
 
             # Compute Band Energy of Noisy Speech
-            _band_energy_noise, _total_energy_noise = fbank(
-                signal=_noise, samplerate=16000, winlen=0.032, winstep=0.016,
-                nfft=1024, nfilt=22, lowfreq=20, highfreq=8000
-            )
+            # _band_energy_noise, _total_energy_noise = fbank(
+            #     signal=_noise, samplerate=16000, winlen=0.032, winstep=0.016,
+            #     nfft=1024, nfilt=22, lowfreq=20, highfreq=8000
+            # )
+
+            _gains = get_melbands_gain(clean_speech_stft=_speech_stft, noisy_speech_stft=_noise_stft,
+                                       melbands=22)
 
             # Compute the Gain of Bands
-            _gains = np.sqrt(np.divide(_band_energy_speech, _band_energy_noise))
+            # _gains = np.sqrt(np.divide(_band_energy_speech, _band_energy_noise))
             # _gains = np.clip(_gains, 0, 1)
 
             #  # Extract Spectral Centroid & Bandwidth
@@ -317,32 +329,35 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
             # _spec_bandwidth = audio_utils.get_spectral_bandwidth(audio_stft=_stft)
 
             # Append MFCC and Gains
-            mfccs = np.concatenate((mfccs, _mfcc))
-            gains = np.concatenate((gains, _gains))
-            total_energy = np.concatenate((total_energy, _total_energy_noise))
+            mfccs = np.concatenate((mfccs, _mfcc), axis=1)
+            gains = np.concatenate((gains, _gains), axis=1)
+            # total_energy = np.concatenate((total_energy, _total_energy_noise))
             # spec_centroid = np.concatenate((spec_centroid, _spec_centroid.T))
             # spec_bandwidth = np.concatenate((spec_bandwidth, _spec_bandwidth.T))
 
             print("[{}] Used Noisy Signal: {}".format(noisy_speech_iterator, file.split("/")[-1]))
             noisy_speech_iterator += 1
 
-        print(mfccs.shape, gains.shape, total_energy.shape)
+        print(mfccs.shape, gains.shape)
 
     # Normalize MFCCs
-    mfccs = normalize(data=mfccs, n=3, quantize=False)
+    # mfccs = normalize(data=mfccs, n=3, quantize=False)
 
     # Compute Delta and Concat
-    gains = gains.T
-    mfccs = mfccs.T
+    # gains = gains.T
+    # mfccs = mfccs.T
     mfcc_d, mfcc_d2 = audio_utils.get_mfccs_delta(mfccs, number_of_melbands=9)
+    mfccs = util.normalize(mfccs)
+    mfcc_d = util.normalize(mfcc_d)
+    mfcc_d2 = util.normalize(mfcc_d2)
     _features = np.concatenate((mfccs, mfcc_d, mfcc_d2))
 
     # print(spec_centroid.shape, spec_bandwidth.shape)
     # spectral_features = np.concatenate((spec_centroid, spec_bandwidth))
 
-    print(_features.shape, gains.shape, total_energy.shape)
+    print(_features.shape, gains.shape)
 
-    return _features, gains, total_energy
+    return _features, gains
 
 
 if __name__ == "__main__":
@@ -379,14 +394,13 @@ if __name__ == "__main__":
 
     # Generate from Scalable Database Directories
     if generate_from_dataset_ms:
-
         # Microsoft Scalable Database Directories
         ms_noisy_dataset = "Prototyping/Dataset Structure/Dataset/MS/NoisySpeech_training"
         ms_clean_dataset = "Prototyping/Dataset Structure/Dataset/MS/CleanSpeech_training"
 
         print("\nGenerating from {}".format(ms_noisy_dataset))
 
-        speech_features, band_gains, _ = generate_dataset_ms(
+        speech_features, band_gains = generate_dataset_ms(
             noisy_speech_dir=ms_noisy_dataset, clean_speech_dir=ms_clean_dataset, snr_levels=4
         )
 

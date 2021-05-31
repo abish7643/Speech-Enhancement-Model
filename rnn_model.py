@@ -9,7 +9,7 @@ model_dir = "Prototyping/Trained Model"
 trained_model = "model.h5"
 
 gen_dataset_dir = "Generated Features"
-gen_dataset = "feature_dataset_ms_psf_.npz"
+gen_dataset = "feature_dataset_ms_librosa_.npz"
 
 
 def check_gpu():
