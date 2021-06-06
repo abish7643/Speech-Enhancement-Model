@@ -5,7 +5,7 @@ from math import sqrt
 
 import numpy as np
 import soundfile as sf
-from librosa import util
+import librosa
 from scipy.io import wavfile
 from python_speech_features import mfcc, fbank
 
@@ -22,7 +22,7 @@ save_directory = "Generated Features/"
 feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz", "feature_dataset_ms_iter.npz"]
 generate_from_dataset = [False, False, False]
 
-feature_filename_ms = "feature_dataset_ms_librosa_.npz"
+feature_filename_ms = "feature_dataset_ms_librosa_vad.npz"
 generate_from_dataset_ms = True
 
 # Audio Configuration
@@ -87,6 +87,46 @@ def get_melbands_gain(clean_speech_stft, noisy_speech_stft, melbands=22):
     # gains_speech = np.divide(gains_speech, np.max(gains_speech))
 
     return gains_speech
+
+
+def get_vad(clean_speech_stft, threshold=0.18):
+
+    # Get Mel Spectrum
+    _speech_mel_spectrum = audio_utils.get_melspectrogram(audio_stft=clean_speech_stft,
+                                                          number_of_melbands=22)
+    # _speech_log_spectrum = librosa.power_to_db(_speech_mel_spectrum)
+
+    # Compute Sum of All Bands Per Frame
+    energy_frames = np.sum(_speech_mel_spectrum, axis=0)
+    # print(energy_frames.shape)
+
+    # Define Required Variables
+    voiced_speech = []
+    end_offset = True
+    start_offset = False
+
+    # Iterate Through Frames
+    for count, j in enumerate(energy_frames):
+        if j > threshold:
+            voiced_speech.append(1)
+
+            # Add Offset of One Hop Length Before Threshold
+            if start_offset:
+                if count > 2 & count < len(energy_frames):
+                    voiced_speech[count - 1] = 1
+                    start_offset = False
+            end_offset = True
+        else:
+            voiced_speech.append(0)
+
+            # Add Offset of One Hop Length After Threshold
+            if end_offset:
+                if voiced_speech[count - 1] == 1:
+                    voiced_speech[count] = 1
+                    end_offset = False
+            start_offset = True
+
+    return np.array(voiced_speech)
 
 
 def get_features(clean_speech, noisy_speech, melbands=22, delta_melbands=9):
@@ -233,7 +273,7 @@ def generate_dataset(noise_dir, speech_dir, snr=None, use_random_snr=False, norm
 
     if normalize:
         print("Normalizing Generated Features")
-        generated_features_speech = util.normalize(generated_features_speech)
+        generated_features_speech = librosa.util.normalize(generated_features_speech)
         # generated_features_gain = util.normalize(generated_features_gain)
 
     return generated_features_speech, generated_features_gain
@@ -256,6 +296,7 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
     # spec_centroid = np.ndarray((0, 1))
     # spec_bandwidth = np.ndarray((0, 1))
     # total_energy = np.array([])
+    vad = np.array([])
 
     clean_speech_iterator = 0
 
@@ -285,6 +326,9 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
         # Take STFT
         _speech_stft = audio_utils.stft(_speech)
 
+        # Find VAD
+        _vad = get_vad(_speech_stft, threshold=0.18)
+
         # Compute Band Energy of Clean Speech
         # _band_energy_speech, _total_energy_speech = fbank(
         #     signal=_speech, samplerate=16000, winlen=0.032, winstep=0.016,
@@ -294,7 +338,6 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
         # Iterate through Noisy Speech
         noisy_speech_iterator = 0
         for file in _temp_noisy_files:
-
             # Load Noisy Signal
             (rate, _noise) = wavfile.read(file)
             _noise = _noise / 32768
@@ -334,11 +377,12 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
             # total_energy = np.concatenate((total_energy, _total_energy_noise))
             # spec_centroid = np.concatenate((spec_centroid, _spec_centroid.T))
             # spec_bandwidth = np.concatenate((spec_bandwidth, _spec_bandwidth.T))
+            vad = np.concatenate((vad, _vad))
 
             print("[{}] Used Noisy Signal: {}".format(noisy_speech_iterator, file.split("/")[-1]))
             noisy_speech_iterator += 1
 
-        print(mfccs.shape, gains.shape)
+        print(mfccs.shape, gains.shape, vad.shape)
 
     # Normalize MFCCs
     # mfccs = normalize(data=mfccs, n=3, quantize=False)
@@ -347,17 +391,17 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
     # gains = gains.T
     # mfccs = mfccs.T
     mfcc_d, mfcc_d2 = audio_utils.get_mfccs_delta(mfccs, number_of_melbands=9)
-    mfccs = util.normalize(mfccs)
-    mfcc_d = util.normalize(mfcc_d)
-    mfcc_d2 = util.normalize(mfcc_d2)
+    mfccs = librosa.util.normalize(mfccs)
+    mfcc_d = librosa.util.normalize(mfcc_d)
+    mfcc_d2 = librosa.util.normalize(mfcc_d2)
     _features = np.concatenate((mfccs, mfcc_d, mfcc_d2))
 
     # print(spec_centroid.shape, spec_bandwidth.shape)
     # spectral_features = np.concatenate((spec_centroid, spec_bandwidth))
 
-    print(_features.shape, gains.shape)
+    print(_features.shape, gains.shape, vad.shape)
 
-    return _features, gains
+    return _features, gains, vad
 
 
 if __name__ == "__main__":
@@ -400,13 +444,16 @@ if __name__ == "__main__":
 
         print("\nGenerating from {}".format(ms_noisy_dataset))
 
-        speech_features, band_gains = generate_dataset_ms(
+        speech_features, band_gains, voiced = generate_dataset_ms(
             noisy_speech_dir=ms_noisy_dataset, clean_speech_dir=ms_clean_dataset, snr_levels=4
         )
 
         print("\nSaving as {} in {}".format(feature_filename_ms, save_directory))
         np.savez_compressed(save_directory + feature_filename_ms,
-                            speech_features=speech_features, gains=band_gains)
+                            speech_features=speech_features,
+                            gains=band_gains,
+                            vad=voiced
+                            )
 
     print("\nGeneration Completed")
 

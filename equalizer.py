@@ -52,8 +52,9 @@ def plot_frequency_response(b, a=None, sampling_frequency=16000, title="", save=
     if len(a) != len(b):
         a = np.ones(len(b))
 
-    plt.rcParams.update({'font.size': 26})
-    plt.style.use(['dark_background'])
+    # plt.rcParams.update({'font.size': 26})
+    # plt.style.use(['dark_background'])
+    plt.rc('font', size=20)
     plt.figure(figsize=(18, 5))
 
     for i in range(len(b)):
@@ -61,19 +62,19 @@ def plot_frequency_response(b, a=None, sampling_frequency=16000, title="", save=
         # w -> frequencies at which response (h) was computed
         w, h = signal.freqz(b[i], a[i])
         plt.plot(w * 0.15915494327 * sampling_frequency,
-                 20 * np.log10(np.maximum(abs(h), 1e-5)))
+                 20 * np.log10(np.maximum(abs(h), 1e-5)), linewidth=3)
 
     plt.title(title)
     plt.ylabel('Amplitude (dB)')
     plt.xlabel('Frequency (Hz)')
     if save:
-        plt.savefig("".join(["../", title, ".png"]))
+        plt.savefig("".join(["../", title, ".png"]), bbox_inches='tight')
     plt.show()
 
 
 def plot_wave(audio, sampling_rate=16000, evaluate_audio=None, title=None):
-    plt.rcParams.update({'font.size': 26})
-    plt.style.use(['dark_background'])
+    # plt.rcParams.update({'font.size': 26})
+    # plt.style.use(['dark_background'])
     plt.figure(figsize=(18, 5))
 
     librosa.display.waveplot(audio, sr=sampling_rate, color='c', alpha=1)
@@ -100,7 +101,7 @@ def equalize_noisy_signal(noisy_speech, gains, melbands=22, sampling_rate=16000,
     b, a = iir_filter_design(freqbands, sampling_rate=sampling_rate, order=1)
 
     if visualize:
-        plot_frequency_response(b, a, save=True, title="Frequency Response")
+        plot_frequency_response(b, a, save=True, title="Frequency Response (IIR Filter)")
 
     # Define Filtered Signal
     filtered_signal = np.zeros(len(noisy_speech))

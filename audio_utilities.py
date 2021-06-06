@@ -26,7 +26,7 @@ class FeatureExtraction:
         else:
             raise Exception("No Such Window Function")
 
-    def stft(self, audio, visualize=False):
+    def stft(self, audio, visualize=False, title="", save=False):
 
         sampling_rate = self.sampling_rate
         frame_length = self.frame_length
@@ -48,10 +48,12 @@ class FeatureExtraction:
             plt.figure(figsize=self.figure_size)
             librosa.display.specshow(data=audio_log_magnitude_spectrum, sr=sampling_rate,
                                      hop_length=hop_length, x_axis="time", y_axis="log")
-            plt.title("Log Magnitude Spectrum")
+            plt.title("Log Magnitude Spectrum ({})".format(title))
             plt.xlabel("Time (s)")
             plt.ylabel("Frequency (Hz)")
             plt.colorbar(format="%+2.f")
+            if save:
+                plt.savefig("".join(["../", title, ".png"]))
             plt.show()
 
         return audio_stft

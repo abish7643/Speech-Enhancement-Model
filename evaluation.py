@@ -1,4 +1,6 @@
 from python_speech_features import fbank, mfcc
+import matplotlib.pyplot as plt
+import librosa.display
 from audio_utilities import FeatureExtraction
 from librosa import util
 from equalizer import equalize_noisy_signal
@@ -8,18 +10,19 @@ import numpy as np
 import soundfile as sf
 from tensorflow.keras.models import load_model
 from pystoi import stoi
+from pypesq import pesq
 
 # from pesq import pesq
 
 # Load Model
 saved_model_dir = "Prototyping/Trained Model"
-saved_model = "model.h5"
+saved_model = "model_vad.h5"
 
 # Evaluate Files
 eval_clean_speech_dir = "Prototyping/Dataset Structure/Dataset/MS/CleanSpeech_training"
 eval_noisy_speech_dir = "Prototyping/Dataset Structure/Dataset/MS/NoisySpeech_training"
 eval_clean_speech_file = "clnsp14.wav"
-eval_noisy_speech_file = "noisy14_SNRdb_25.0_clnsp14.wav"
+eval_noisy_speech_file = "noisy14_SNRdb_15.0_clnsp14.wav"
 
 # Save Audio File
 save_wav_dir = "Generated Features"
@@ -42,9 +45,23 @@ def get_stoi_pesq(filtered_speech, original_speech, sampling_rate=16000):
     stoi_value = stoi(x=original_speech, y=filtered_speech, fs_sig=sampling_rate, extended=False)
 
     # Compute PESQ
-    # pesq_value = pesq(ref=original_speech, deg=filtered_speech, fs=sampling_rate, mode='wb')
+    pesq_value = pesq(ref=original_speech, deg=filtered_speech, fs=sampling_rate)
 
-    return stoi_value, 0
+    return stoi_value, pesq_value
+
+
+def plot_gains(feature, sr=16000, title="", save=False):
+    plt.figure(figsize=(18, 5))
+    librosa.display.specshow(data=feature, sr=sr,
+                             x_axis="time", y_axis="mel")
+    plt.colorbar(format="%+.2f")
+    plt.title((title + " - {}").format(len(feature)))
+    plt.xlabel("Time (s)")
+    plt.ylabel("Frequency (Hz)")
+    if save:
+        plt.savefig("".join(["../", title, ".png"]))
+    plt.show()
+    return True
 
 
 def get_features(clean_speech_file, noisy_speech_file, truncate_length=None):
@@ -107,9 +124,11 @@ def get_features(clean_speech_file, noisy_speech_file, truncate_length=None):
     _generated_features = np.concatenate((_mfccs, _mfccs_d, _mfccs_d2))
     print("Generated Features: {}".format(_generated_features.shape))
 
+    _generated_features = _generated_features.T
+
     # Reshape
     _window_size = _mfccs.shape[1]
-    _number_of_sequences = int(_mfccs.shape[1] / _window_size)
+    _number_of_sequences = int(_generated_features.shape[0] / _window_size)
     _generated_features = _generated_features[:_number_of_sequences * _window_size]
     _generated_features = np.reshape(
         _generated_features, (_window_size, _number_of_sequences, 40)
@@ -134,14 +153,18 @@ if __name__ == "__main__":
     generated_features, gains_ref, clean_speech, noisy_speech = get_features(
         clean_speech_file="/".join([eval_clean_speech_dir, eval_clean_speech_file]),
         noisy_speech_file="/".join([eval_noisy_speech_dir, eval_noisy_speech_file]),
-        truncate_length=10
+        truncate_length=5
     )
     print("Generated Features : {}".format(generated_features.shape))
 
     # Predict Gains Using Model
     print("\nPredicting Gains")
-    gains_predicted = _model.predict(generated_features, batch_size=32)
-    print("Predicted Gains : {}".format(gains_predicted.shape))
+    _prediction = _model.predict(generated_features, batch_size=32)
+    # print("Predicted Gains : {}".format(gains_predicted.shape))
+
+    gains_predicted = _prediction[0]
+    vad_predicted = _prediction[1]
+    print("Predicted Gains : {}, VAD : {}".format(gains_predicted.shape, vad_predicted.shape))
 
     # Reshape
     window_size = gains_predicted.shape[0]
@@ -149,21 +172,37 @@ if __name__ == "__main__":
     gains_predicted = np.reshape(
         gains_predicted, (window_size * number_of_sequences, 22)
     )
-    print("Reshaped Gains : {}".format(gains_predicted.shape))
+    vad_predicted = np.reshape(
+        vad_predicted, (window_size * number_of_sequences, 1)
+    )
+    print("Reshaped Gains : {}, VAD : {}".format(gains_predicted.shape, vad_predicted.shape))
+    # print(vad_predicted)
 
     # Clip Gains
     gains_predicted = np.clip(gains_predicted, 0, 1)
 
+    # Make VAD 0 or 1
+    # _vad_threshold = 0.47
+    # vad_predicted = np.where(vad_predicted <= _vad_threshold, 0, vad_predicted)
+    # vad_predicted = np.where(vad_predicted > _vad_threshold, 1, vad_predicted)
+
+    # Apply VAD to Gains
+    gains_predicted_vad = gains_predicted * vad_predicted
+
     # Equalize
     equalized_signal = equalize_noisy_signal(
-        noisy_speech=noisy_speech, gains=gains_predicted,
-        sampling_rate=sampling_rate, hop_length=512
+        noisy_speech=noisy_speech, gains=gains_predicted_vad,
+        sampling_rate=sampling_rate, hop_length=hop_length
+    )
+    ideal_equalized_signal = equalize_noisy_signal(
+        noisy_speech=noisy_speech, gains=gains_ref.T,
+        sampling_rate=sampling_rate, hop_length=hop_length
     )
     print("Equalized Signal : {}".format(equalized_signal.shape))
 
     # Saving
-    print("Saving to {} as \n{} & {}".format(
-        save_wav_dir, save_noisy_speech_eq_file, noisy_speech)
+    print("Saving to {} as {} & {}".format(
+        save_wav_dir, save_noisy_speech_eq_file, save_noisy_speech_file)
     )
     sf.write("/".join([save_wav_dir, save_noisy_speech_eq_file]),
              equalized_signal, samplerate=sampling_rate)
@@ -176,3 +215,21 @@ if __name__ == "__main__":
     )
 
     print("STOI : {}, PESQ: {}".format(stoi_eq, pesq_eq))
+
+    # Spectrum
+    equalized_signal_stft = audio_utils.stft(audio=equalized_signal, title="Equalized Speech",
+                                             visualize=True, save=True)
+    ideal_equalized_signal_stft = audio_utils.stft(audio=ideal_equalized_signal, title="Ideal Equalized Speech",
+                                                   visualize=True, save=True)
+    noisy_speech_stft = audio_utils.stft(audio=noisy_speech, title="Noisy Speech",
+                                         visualize=True, save=True)
+    clean_speech_stft = audio_utils.stft(audio=clean_speech, title="Clean Speech",
+                                         visualize=True, save=True)
+
+    # plt.figure(figsize=(18, 5))
+    # plt.plot(vad_predicted)
+    # plt.show()
+
+    plot_gains(gains_ref, title="Gains", save=True)
+    plot_gains(gains_predicted.T, title="Predicted Gains", save=True)
+    plot_gains(gains_predicted_vad.T, title="Predicted Gains With VAD", save=True)
