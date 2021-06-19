@@ -22,7 +22,7 @@ save_directory = "Generated Features/"
 feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz", "feature_dataset_ms_iter.npz"]
 generate_from_dataset = [False, False, False]
 
-feature_filename_ms = "feature_dataset_ms_librosa_vad.npz"
+feature_filename_ms = "feature_dataset_ms_librosa_vad_spec.npz"
 generate_from_dataset_ms = True
 
 # Audio Configuration
@@ -293,6 +293,7 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
     # gains = np.ndarray((0, number_of_melbands))
     mfccs = np.ndarray((number_of_melbands, 0))
     gains = np.ndarray((number_of_melbands, 0))
+    spec = np.ndarray((2, 0))
     # spec_centroid = np.ndarray((0, 1))
     # spec_bandwidth = np.ndarray((0, 1))
     # total_energy = np.array([])
@@ -359,6 +360,11 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
             #     nfft=1024, nfilt=22, lowfreq=20, highfreq=8000
             # )
 
+            # Extract Spectral Centroid & Bandwidth
+            _spec_centroid = audio_utils.get_spectral_centroid(audio_stft=_noise_stft)
+            _spec_bandwidth = audio_utils.get_spectral_bandwidth(audio_stft=_noise_stft)
+            _spec = np.concatenate((_spec_centroid, _spec_bandwidth))
+
             _gains = get_melbands_gain(clean_speech_stft=_speech_stft, noisy_speech_stft=_noise_stft,
                                        melbands=22)
 
@@ -366,14 +372,10 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
             # _gains = np.sqrt(np.divide(_band_energy_speech, _band_energy_noise))
             # _gains = np.clip(_gains, 0, 1)
 
-            #  # Extract Spectral Centroid & Bandwidth
-            # _stft = audio_utils.stft(_noise)
-            # _spec_centroid = audio_utils.get_spectral_centroid(audio_stft=_stft)
-            # _spec_bandwidth = audio_utils.get_spectral_bandwidth(audio_stft=_stft)
-
             # Append MFCC and Gains
             mfccs = np.concatenate((mfccs, _mfcc), axis=1)
             gains = np.concatenate((gains, _gains), axis=1)
+            spec = np.concatenate((spec, _spec), axis=1)
             # total_energy = np.concatenate((total_energy, _total_energy_noise))
             # spec_centroid = np.concatenate((spec_centroid, _spec_centroid.T))
             # spec_bandwidth = np.concatenate((spec_bandwidth, _spec_bandwidth.T))
@@ -382,7 +384,7 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
             print("[{}] Used Noisy Signal: {}".format(noisy_speech_iterator, file.split("/")[-1]))
             noisy_speech_iterator += 1
 
-        print(mfccs.shape, gains.shape, vad.shape)
+        print(mfccs.shape, gains.shape, spec.shape, vad.shape)
 
     # Normalize MFCCs
     # mfccs = normalize(data=mfccs, n=3, quantize=False)
@@ -394,12 +396,14 @@ def generate_dataset_ms(noisy_speech_dir, clean_speech_dir, snr_levels=4):
     mfccs = librosa.util.normalize(mfccs)
     mfcc_d = librosa.util.normalize(mfcc_d)
     mfcc_d2 = librosa.util.normalize(mfcc_d2)
-    _features = np.concatenate((mfccs, mfcc_d, mfcc_d2))
+    spec = librosa.util.normalize(spec)
+
+    _features = np.concatenate((mfccs, mfcc_d, mfcc_d2, spec))
 
     # print(spec_centroid.shape, spec_bandwidth.shape)
     # spectral_features = np.concatenate((spec_centroid, spec_bandwidth))
 
-    print(_features.shape, gains.shape, vad.shape)
+    print(_features.shape, gains.shape, spec.shape, vad.shape)
 
     return _features, gains, vad
 

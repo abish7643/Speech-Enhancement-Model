@@ -156,7 +156,12 @@ feature_dataset_timit.npz
 /weights.npz
 
 /Prototyping/Trained Model/model.h5
+/Prototyping/Trained Model/model_vad_v2_spec.h5
+/Prototyping/Trained Model/model_vad_v2.h5
 Generated Features/
 
 /Prototyping/Model Train Test.ipynb
 /Prototyping/RNN Model.ipynb
+
+evaluation_batch.py
+logs/

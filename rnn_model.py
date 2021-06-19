@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 from tensorflow import keras, test
 from tensorflow.keras.layers import Input, Dense, GRU, concatenate, Dropout, Flatten, Activation
 from tensorflow.keras.models import Model
+import datetime
 
 train_model = True
 model_dir = "Prototyping/Trained Model"
-trained_model = "model_vad.h5"
+trained_model = "model_vad_v2.h5"
 
 gen_dataset_dir = "Generated Features"
 gen_dataset = "feature_dataset_ms_librosa_vad.npz"
@@ -63,7 +64,9 @@ def model_gru_vad(regulazier=0.001, input_size=52, output_size=22):
     return _model
 
 
-def plot_analytics(history, axis=None, label=None, title="", legend="upper right", save=True):
+def plot_analytics(history, axis=None, label=None, xylabel=None, title="", legend="upper right", save=True):
+    if xylabel is None:
+        xylabel = ["Epochs", axis[0].capitalize()]
     if label is None:
         label = ["", ""]
 
@@ -77,15 +80,14 @@ def plot_analytics(history, axis=None, label=None, title="", legend="upper right
     plt.figure(figsize=(18, 5))
     plt.plot(history.history[axis[0]], label=label[0])
     plt.plot(history.history[axis[1]], label=label[1])
-    plt.xlabel("Epochs")
-    plt.ylabel(axis[0].capitalize())
+    plt.xlabel(xylabel[0])
+    plt.ylabel(xylabel[1])
     plt.yticks(size=22)
     plt.xticks(size=22)
     plt.legend(loc=legend)
     plt.title(title)
     if save:
         plt.savefig("".join(["../", title, ".png"]), bbox_inches='tight')
-    # plt.title(axis[0].capitalize(), fontsize=50)
     plt.show()
 
 
@@ -143,16 +145,26 @@ if __name__ == "__main__":
         _model_gru = model_gru_vad(input_size=40, regulazier=0.001)
         _optimizer = keras.optimizers.Adam(learning_rate=0.001)
         _model_gru.compile(optimizer=_optimizer,
-                           loss="mse", metrics=["accuracy"], )
+                           loss="mse",
+                           metrics=[
+                               "accuracy",
+                               # keras.metrics.TruePositives(), keras.metrics.TrueNegatives(),
+                               # keras.metrics.FalseNegatives(), keras.metrics.FalsePositives(),
+                               keras.metrics.Precision(), keras.metrics.Recall(),
+                           ]
+                           )
+
+        log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
         # Model Summary & Train Model
         _model_gru.summary()
 
         print("Training Model")
         _history = _model_gru.fit(x, [y, y_vad],
-                                  validation_split=0.2,
+                                  validation_split=0.2, shuffle=False,
                                   batch_size=32, epochs=120,
-                                  shuffle=False)
+                                  callbacks=[tensorboard_callback])
         print("\nTraining Complete\n")
 
         # Clear Memory
@@ -166,18 +178,26 @@ if __name__ == "__main__":
 
         # Plot
         plot_analytics(_history, axis=["loss", "val_loss"],
-                       label=["Train", "Test"], title="Loss")
+                       label=["Train", "Test"], legend="upper right",
+                       title="Loss", xylabel=["Epochs", "Loss"])
         # plot_analytics(_history, axis=["accuracy", "val_accuracy"],
-        #                label=["Train", "Test"], legend="lower right", title="Accuracy")
-
-        plot_analytics(_history, axis=["activation_loss", "val_activation_loss"],
-                       label=["Train", "Test"], title="Loss (VAD)")
-        plot_analytics(_history, axis=["activation_1_loss", "val_activation_1_loss"],
-                       label=["Train", "Test"], legend="lower right", title="Loss (Gains)")
-
-        plot_analytics(_history, axis=["activation_accuracy", "val_activation_accuracy"],
-                       label=["Train", "Test"], legend="lower right", title="Accuracy (VAD)")
-        plot_analytics(_history, axis=["activation_1_accuracy", "val_activation_1_accuracy"],
-                       label=["Train", "Test"], legend="lower right", title="Accuracy (Gains)")
+        #                label=["Train", "Test"], legend="lower right",
+        #                title="Accuracy", xylabel=["Epochs", "Accuracy"])
+        plot_analytics(_history,
+                       axis=["activation_loss", "val_activation_loss"],
+                       label=["Train", "Test"], legend="upper right",
+                       title="Loss (VAD)", xylabel=["Epochs", "Loss"])
+        plot_analytics(_history,
+                       axis=["activation_1_loss", "val_activation_1_loss"],
+                       label=["Train", "Test"], legend="upper right",
+                       title="Loss (Band Gains)", xylabel=["Epochs", "Loss"])
+        plot_analytics(_history,
+                       axis=["activation_accuracy", "val_activation_accuracy"],
+                       label=["Train", "Test"], legend="lower right",
+                       title="Accuracy (VAD)", xylabel=["Epochs", "Accuracy"])
+        plot_analytics(_history,
+                       axis=["activation_1_accuracy", "val_activation_1_accuracy"],
+                       label=["Train", "Test"], legend="lower right",
+                       title="Accuracy (Band Gains)", xylabel=["Epochs", "Accuracy"])
 
     print("\nProcess Completed")

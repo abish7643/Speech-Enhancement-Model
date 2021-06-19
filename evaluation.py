@@ -1,4 +1,4 @@
-from python_speech_features import fbank, mfcc
+import math
 import matplotlib.pyplot as plt
 import librosa.display
 from audio_utilities import FeatureExtraction
@@ -22,7 +22,20 @@ saved_model = "model_vad.h5"
 eval_clean_speech_dir = "Prototyping/Dataset Structure/Dataset/MS/CleanSpeech_training"
 eval_noisy_speech_dir = "Prototyping/Dataset Structure/Dataset/MS/NoisySpeech_training"
 eval_clean_speech_file = "clnsp14.wav"
-eval_noisy_speech_file = "noisy14_SNRdb_15.0_clnsp14.wav"
+eval_noisy_speech_file = "noisy14_SNRdb_10.0_clnsp14.wav"
+
+# Evaluate Batch
+snr_req = [25, 20, 15, 10]
+STOI, PESQ, eval_batch = [], [], True
+# eval_batch_clean_files = ["clnsp3.wav", "clnsp14.wav", "clnsp9.wav", "clnsp13.wav",
+#                           "clnsp3.wav", "clnsp4.wav", "clnsp4.wav", "clnsp4.wav"]
+# eval_batch_noise_labels = ["babble", "engine", "white", "hammer",
+#                            "nature", "rock", "cafeteria", "traffic"]
+eval_batch_clean_files = ["clnsp14.wav", "clnsp9.wav", "clnsp4.wav"]
+# eval_batch_clean_files = ["clnsp15.wav", "clnsp1.wav", "clnsp12.wav"]
+eval_batch_noise_labels = ["engine", "white", "traffic"]
+# eval_batch_noise_labels = ["engine", "white", "traffic"]
+eval_batch_noisy_files = []
 
 # Save Audio File
 save_wav_dir = "Generated Features"
@@ -34,7 +47,6 @@ sampling_rate = 16000
 frame_length, window_length, hop_length = 1024, 1024, 512
 window_function = "vorbis"
 number_of_melbands, number_of_features = 22, 40
-snr_req = [-5, 0, 5, 10]
 audio_utils = FeatureExtraction(sampling_rate=sampling_rate,
                                 frame_length=frame_length, hop_length=hop_length,
                                 window_length=window_length, window_function=window_function)
@@ -50,6 +62,27 @@ def get_stoi_pesq(filtered_speech, original_speech, sampling_rate=16000):
     return stoi_value, pesq_value
 
 
+def plot_score(score, noise_type, snr=None, title="", save=True):
+    if snr is None:
+        snr = [0, 5, 10, 15]
+
+    # Reshaping to SNR Levels x Score
+    noise_count = int(len(score)/len(snr))
+    score = np.array(score)
+    score = score.reshape(noise_count, len(snr))
+
+    plt.figure()
+    plt.plot(snr, score.T)
+    plt.xticks(snr, snr)
+    plt.legend(noise_type)
+    plt.xlabel("SNR Levels (dB)")
+    plt.ylabel("Score")
+    plt.title(title)
+    if save:
+        plt.savefig("".join(["../", title, ".png"]), bbox_inches='tight')
+    plt.show()
+
+
 def plot_gains(feature, sr=16000, title="", save=False):
     plt.figure(figsize=(18, 5))
     librosa.display.specshow(data=feature, sr=sr,
@@ -59,7 +92,7 @@ def plot_gains(feature, sr=16000, title="", save=False):
     plt.xlabel("Time (s)")
     plt.ylabel("Frequency (Hz)")
     if save:
-        plt.savefig("".join(["../", title, ".png"]))
+        plt.savefig("".join(["../", title, ".png"]), bbox_inches='tight')
     plt.show()
     return True
 
@@ -117,11 +150,17 @@ def get_features(clean_speech_file, noisy_speech_file, truncate_length=None):
 
     _mfccs_d, _mfccs_d2 = audio_utils.get_mfccs_delta(_mfccs, number_of_melbands=9)
 
+    _spec_centroid = audio_utils.get_spectral_centroid(audio_stft=_noisy_speech_stft)
+    _spec_bandwidth = audio_utils.get_spectral_bandwidth(audio_stft=_noisy_speech_stft)
+    _spec = np.concatenate((_spec_centroid, _spec_bandwidth))
+
     _mfccs = util.normalize(_mfccs)
     _mfccs_d = util.normalize(_mfccs_d)
     _mfccs_d2 = util.normalize(_mfccs_d2)
+    _spec = util.normalize(_spec)
 
-    _generated_features = np.concatenate((_mfccs, _mfccs_d, _mfccs_d2))
+    _generated_features = np.concatenate((_mfccs, _mfccs_d, _mfccs_d2, _spec))
+    _generated_features = _generated_features[:number_of_features]
     print("Generated Features: {}".format(_generated_features.shape))
 
     _generated_features = _generated_features.T
@@ -131,7 +170,7 @@ def get_features(clean_speech_file, noisy_speech_file, truncate_length=None):
     _number_of_sequences = int(_generated_features.shape[0] / _window_size)
     _generated_features = _generated_features[:_number_of_sequences * _window_size]
     _generated_features = np.reshape(
-        _generated_features, (_window_size, _number_of_sequences, 40)
+        _generated_features, (_window_size, _number_of_sequences, number_of_features)
     )
     print("Modified Shape to {} with Window Size {}".format(_generated_features.shape,
                                                             _window_size))
@@ -139,21 +178,22 @@ def get_features(clean_speech_file, noisy_speech_file, truncate_length=None):
     return _generated_features, _gains, _clean_speech, _noisy_speech
 
 
-if __name__ == "__main__":
+def predict_equalize(clean_speech_file, noisy_speech_file, visualize=False, save=False, save_audio=False):
     print("\nLoading Model {} from {}".format(saved_model_dir, saved_model))
 
     _model = load_model(filepath="/".join([saved_model_dir, saved_model]))
     print("Model Loaded")
 
     # Model Summary
-    _model.summary()
+    if visualize:
+        _model.summary()
 
     # Generate Features
     print("\nGenerating Features")
     generated_features, gains_ref, clean_speech, noisy_speech = get_features(
-        clean_speech_file="/".join([eval_clean_speech_dir, eval_clean_speech_file]),
-        noisy_speech_file="/".join([eval_noisy_speech_dir, eval_noisy_speech_file]),
-        truncate_length=5
+        clean_speech_file=clean_speech_file,
+        noisy_speech_file=noisy_speech_file,
+        truncate_length=10
     )
     print("Generated Features : {}".format(generated_features.shape))
 
@@ -201,35 +241,77 @@ if __name__ == "__main__":
     print("Equalized Signal : {}".format(equalized_signal.shape))
 
     # Saving
-    print("Saving to {} as {} & {}".format(
-        save_wav_dir, save_noisy_speech_eq_file, save_noisy_speech_file)
-    )
-    sf.write("/".join([save_wav_dir, save_noisy_speech_eq_file]),
-             equalized_signal, samplerate=sampling_rate)
-    sf.write("/".join([save_wav_dir, save_noisy_speech_file]),
-             noisy_speech, samplerate=sampling_rate)
+    if save_audio:
+        print("Saving to {} as {} & {}".format(
+            save_wav_dir, save_noisy_speech_eq_file, save_noisy_speech_file)
+        )
+        sf.write("/".join([save_wav_dir, save_noisy_speech_eq_file]),
+                 equalized_signal, samplerate=sampling_rate)
+        sf.write("/".join([save_wav_dir, save_noisy_speech_file]),
+                 noisy_speech, samplerate=sampling_rate)
 
     # Get STOI and PESQ
     stoi_eq, pesq_eq = get_stoi_pesq(
         equalized_signal, noisy_speech, sampling_rate=sampling_rate
     )
+    if eval_batch:
+        STOI.append(stoi_eq)
+        PESQ.append(pesq_eq)
+    else:
+        print("STOI : {}, PESQ: {}".format(stoi_eq, pesq_eq))
 
-    print("STOI : {}, PESQ: {}".format(stoi_eq, pesq_eq))
+    if visualize:
+        # Spectrum
+        equalized_signal_stft = audio_utils.stft(audio=equalized_signal, title="Equalized Speech",
+                                                 visualize=True, save=save)
+        ideal_equalized_signal_stft = audio_utils.stft(audio=ideal_equalized_signal, title="Ideal Equalized Speech",
+                                                       visualize=True, save=save)
+        noisy_speech_stft = audio_utils.stft(audio=noisy_speech, title="Noisy Speech",
+                                             visualize=True, save=save)
+        clean_speech_stft = audio_utils.stft(audio=clean_speech, title="Clean Speech",
+                                             visualize=True, save=save)
 
-    # Spectrum
-    equalized_signal_stft = audio_utils.stft(audio=equalized_signal, title="Equalized Speech",
-                                             visualize=True, save=True)
-    ideal_equalized_signal_stft = audio_utils.stft(audio=ideal_equalized_signal, title="Ideal Equalized Speech",
-                                                   visualize=True, save=True)
-    noisy_speech_stft = audio_utils.stft(audio=noisy_speech, title="Noisy Speech",
-                                         visualize=True, save=True)
-    clean_speech_stft = audio_utils.stft(audio=clean_speech, title="Clean Speech",
-                                         visualize=True, save=True)
+        # plt.figure(figsize=(18, 5))
+        # plt.plot(vad_predicted)
+        # plt.show()
 
-    # plt.figure(figsize=(18, 5))
-    # plt.plot(vad_predicted)
-    # plt.show()
+        plot_gains(gains_ref, title="Gains", save=save)
+        plot_gains(gains_predicted.T, title="Predicted Gains", save=save)
+        plot_gains(gains_predicted_vad.T, title="Predicted Gains With VAD", save=save)
 
-    plot_gains(gains_ref, title="Gains", save=True)
-    plot_gains(gains_predicted.T, title="Predicted Gains", save=True)
-    plot_gains(gains_predicted_vad.T, title="Predicted Gains With VAD", save=True)
+
+if __name__ == "__main__":
+    if not eval_batch:
+        predict_equalize(clean_speech_file="/".join([eval_clean_speech_dir, eval_clean_speech_file]),
+                         noisy_speech_file="/".join([eval_noisy_speech_dir, eval_noisy_speech_file]),
+                         visualize=False, save=False, save_audio=True
+                         )
+    else:
+        # Create Noise Filenames
+        for file in eval_batch_clean_files:
+            for _snr in snr_req:
+                noisy_file_template = "noisy{}_SNRdb_{}.0_{}".format(
+                    file.replace("clnsp", "").split(".")[0], _snr, file
+                )
+                eval_batch_noisy_files.append(noisy_file_template)
+
+        print("Clean Speech Files : {}, Noisy Speech Files : {}".format(
+            len(eval_batch_clean_files), len(eval_batch_noisy_files)
+        ))
+
+        # Iterate Through Noise Files
+        for noise_file in eval_batch_noisy_files:
+            clean_file_no = math.floor(len(eval_batch_clean_files) / len(snr_req))
+            clean_file = eval_batch_clean_files[clean_file_no]
+            predict_equalize(clean_speech_file="/".join([eval_clean_speech_dir, clean_file]),
+                             noisy_speech_file="/".join([eval_noisy_speech_dir, noise_file]),
+                             visualize=False, save=False
+                             )
+
+        # Plot Scores
+        print("STOI : {}\nPESQ : {}".format(STOI, PESQ))
+        plot_score(noise_type=eval_batch_noise_labels,
+                   score=STOI, snr=[15, 10, 5, 0], title="STOI")
+        plot_score(noise_type=eval_batch_noise_labels,
+                   score=PESQ, snr=[15, 10, 5, 0], title="PESQ")
+

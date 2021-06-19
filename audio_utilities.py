@@ -84,7 +84,7 @@ class FeatureExtraction:
 
         return mfccs
 
-    def get_mfccs_from_spectrogram(self, audio_stft, number_of_melbands=13, visualize=False):
+    def get_mfccs_from_spectrogram(self, audio_stft, number_of_melbands=13, visualize=False, save=False):
 
         sampling_rate = self.sampling_rate
         frame_length = self.frame_length
@@ -108,6 +108,7 @@ class FeatureExtraction:
                                      sr=sampling_rate, n_mfcc=number_of_melbands)
 
         if visualize:
+            plt.rc('font', size=20)
             plt.figure(figsize=self.figure_size)
             librosa.display.specshow(data=mfccs, sr=sampling_rate, hop_length=hop_length,
                                      x_axis="time", y_axis="mel")
@@ -115,6 +116,8 @@ class FeatureExtraction:
             plt.title("MFCCs ({})".format(number_of_melbands))
             plt.xlabel("Time (s)")
             plt.ylabel("Frequency (Hz)")
+            if save:
+                plt.savefig("".join(["../", "MFCCs ({})".format(number_of_melbands), ".png"]), bbox_inches='tight')
             plt.show()
 
         return mfccs
@@ -150,7 +153,7 @@ class FeatureExtraction:
 
         return audio_mel_spectrogram
 
-    def get_mfccs_delta(self, mfccs, delta_delta=True, number_of_melbands=13, visualize=False):
+    def get_mfccs_delta(self, mfccs, delta_delta=True, number_of_melbands=13, visualize=False, save=False):
 
         # Compute Derivative of MFCC Per Frame
         delta_mfcc = librosa.feature.delta(mfccs)[:number_of_melbands]
@@ -162,6 +165,7 @@ class FeatureExtraction:
             delta2_mfcc = False
 
         if visualize:
+            plt.rc('font', size=20)
             plt.figure(figsize=self.figure_size)
             librosa.display.specshow(data=delta_mfcc, sr=self.sampling_rate,
                                      x_axis="time", y_axis="mel")
@@ -169,9 +173,12 @@ class FeatureExtraction:
             plt.title("Delta MFCC ({})".format(number_of_melbands))
             plt.xlabel("Time (s)")
             plt.ylabel("Frequency (Hz)")
+            if save:
+                plt.savefig("".join(["../", "Delta MFCC ({})".format(number_of_melbands), ".png"]), bbox_inches='tight')
             plt.show()
 
             if delta_delta:
+                plt.rc('font', size=20)
                 plt.figure(figsize=self.figure_size)
                 librosa.display.specshow(data=delta2_mfcc, sr=self.sampling_rate,
                                          x_axis="time", y_axis="mel")
@@ -179,6 +186,9 @@ class FeatureExtraction:
                 plt.title("Delta Delta MFCC ({})".format(number_of_melbands))
                 plt.xlabel("Time (s)")
                 plt.ylabel("Frequency (Hz)")
+                if save:
+                    plt.savefig("".join(["../", "Delta Delta MFCC ({})".format(number_of_melbands), ".png"]),
+                                bbox_inches='tight')
                 plt.show()
 
         return delta_mfcc, delta2_mfcc
@@ -311,7 +321,7 @@ class FeatureExtraction:
 
         return audio_spectral_bandwidth
 
-    def plot_spectral_centroid_bandwidth(self, audio=None, audio_stft=None):
+    def plot_spectral_centroid_bandwidth(self, audio=None, audio_stft=None, save=False):
 
         sampling_rate = self.sampling_rate
         frame_length = self.frame_length
@@ -336,6 +346,7 @@ class FeatureExtraction:
         # Find The Log Magnitude Spectrum
         audio_log_magnitude_spectrum = librosa.power_to_db(audio_magnitude_spectrum)
 
+        plt.rc('font', size=20)
         plt.figure(figsize=self.figure_size)
 
         librosa.display.specshow(data=audio_log_magnitude_spectrum, sr=sampling_rate,
@@ -348,12 +359,14 @@ class FeatureExtraction:
                                        n_fft=frame_length, hop_length=hop_length)
 
         plt.plot(time_axis, audio_spectral_centroid[0],
-                 color='cyan', linewidth=3, label="Centroid")
+                 color='black', linewidth=3, label="Centroid")
         plt.plot(time_axis, audio_spectral_bandwidth[0],
-                 color='yellowgreen', linewidth=3, label="Bandwidth")
+                 color='red', linewidth=3, label="Bandwidth")
         plt.xlabel("Time (s)")
         plt.ylabel("Frequency (Hz)")
         plt.legend(loc='lower right')
+        if save:
+            plt.savefig("".join(["../", "Spectral Centroid and Bandwidth", ".png"]), bbox_inches='tight')
         plt.show()
 
         return True
