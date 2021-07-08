@@ -27,9 +27,8 @@
     ```
    Alternatively, the required libraries can be installed by
    ```sh
-   pip3 install librosa numpy scipy matplotlib notebook IPython
-   pip3 install tensorflow==2.3.2
-   pip3 install pystoi pesq
+   pip3 install librosa numpy scipy matplotlib notebook IPython pystoi pypesq
+   pip3 install tensorflow==2.5.0
    ```
     
 <!--
