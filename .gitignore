@@ -141,27 +141,19 @@ cython_debug/
 .vscode/
 .idea/
 
-# Dataset Folders
-/Prototyping/Dataset Structure/Dataset/Noise/
-/Prototyping/Dataset Structure/Dataset/Speech/
-/Prototyping/Dataset Structure/Dataset/MS/
-/Prototyping/Dataset Structure/Noise Added Dataset/
-
-# npz file
 *.npz
-/Prototyping/feature_dataset.npz
-feature_dataset.npz
-feature_dataset_tsp.npz
-feature_dataset_timit.npz
-/weights.npz
-
-/Prototyping/Trained Model/model.h5
-/Prototyping/Trained Model/model_vad_v2_spec.h5
-/Prototyping/Trained Model/model_vad_v2.h5
-Generated Features/
-
-/Prototyping/Model Train Test.ipynb
-/Prototyping/RNN Model.ipynb
+*.h5
+*.wav
+*.txt
 
 evaluation_batch.py
+
 logs/
+Misc/*
+
+CleanSpeech_training/*
+Noise_training/*
+NoisySpeech_training/*
+Noise/*
+
+Equalized Audio/*

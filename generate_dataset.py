@@ -11,19 +11,18 @@ from python_speech_features import mfcc, fbank
 
 from audio_utilities import FeatureExtraction
 
-# Dataset Dir
-noise_database_path = "Prototyping/Dataset Structure/Dataset/Noise"
-
-speech_database_paths = ["Prototyping/Dataset Structure/Dataset/Speech/TIMIT CORPUS",
-                         "Prototyping/Dataset Structure/Dataset/Speech/TSP",
-                         "Prototyping/Dataset Structure/Dataset/Speech/MS_SNSD"]
-
-save_directory = "Generated Features/"
-feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz", "feature_dataset_ms_iter.npz"]
 generate_from_dataset = [False, False, False]
-
-feature_filename_ms = "feature_dataset_ms_librosa_vad_spec.npz"
 generate_from_dataset_ms = True
+
+# Dataset Dir
+noise_database_path = "Assets/Datasets/Noise"
+speech_database_paths = ["Assets/Datasets/TIMIT CORPUS", "Assets/Datasets/TSP"]
+ms_noisy_dataset = "Assets/Datasets/MS/NoisySpeech_training"
+ms_clean_dataset = "Assets/Datasets/MS/CleanSpeech_training"
+
+save_directory = "Assets/Generated Features"
+feature_filename = ["feature_dataset_timit.npz", "feature_dataset_tsp.npz"]
+feature_filename_ms = "feature_dataset_ms_librosa_vad_spec.npz"
 
 # Audio Configuration
 sampling_rate = 16000
@@ -442,9 +441,6 @@ if __name__ == "__main__":
 
     # Generate from Scalable Database Directories
     if generate_from_dataset_ms:
-        # Microsoft Scalable Database Directories
-        ms_noisy_dataset = "Prototyping/Dataset Structure/Dataset/MS/NoisySpeech_training"
-        ms_clean_dataset = "Prototyping/Dataset Structure/Dataset/MS/CleanSpeech_training"
 
         print("\nGenerating from {}".format(ms_noisy_dataset))
 

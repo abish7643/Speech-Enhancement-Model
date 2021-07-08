@@ -95,7 +95,7 @@ def equalize_noisy_signal(noisy_speech, gains, melbands=22, sampling_rate=16000,
     # Compute Freq Bands
     freqbands = librosa.filters.mel_frequencies(n_mels=melbands, fmax=sampling_rate / 2,
                                                 fmin=20)
-    freqbands = freqbands[1:-1]
+    # freqbands = freqbands[1:-1]
 
     # Get Filter Coefficients
     b, a = iir_filter_design(freqbands, sampling_rate=sampling_rate, order=1)
@@ -116,8 +116,8 @@ def equalize_noisy_signal(noisy_speech, gains, melbands=22, sampling_rate=16000,
 
 def example(melbands=22, snr=25, speech_concat=2):
     # Example Audio Files
-    noise_file = "Prototyping/Audio Samples/Kindergarten_Noise.wav"
-    speech_file = "Prototyping/Audio Samples/Female_Speech.WAV"
+    noise_file = "Assets/Datasets/Noise/engine.wav"
+    speech_file = "Assets/Datasets/MS/CleanSpeech_training/clnsp13.wav"
 
     # Audio Parameters
     sampling_rate = 16000

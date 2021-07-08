@@ -60,17 +60,14 @@ class FeatureExtraction:
 
     def get_mfccs(self, audio, number_of_melbands=13, visualize=False):
 
-        # Find MFCCs
-        #     # mfccs = np.concatenate((mfccs, mfccs_temp), axis=1)
-        # else:
-        # mfccs = librosa.feature.mfcc(y=audio, n_mfcc=number_of_melbands,
-        #                              sr=self.sampling_rate, hop_length=self.hop_length)
+        mfccs = librosa.feature.mfcc(y=audio, n_mfcc=number_of_melbands,
+                                     sr=self.sampling_rate, hop_length=self.hop_length)
 
-        mfccs = python_speech_features.mfcc(signal=audio, samplerate=self.sampling_rate,
-                                            numcep=number_of_melbands, nfilt=number_of_melbands,
-                                            winlen=self.window_length_t, winstep=self.window_length_t,
-                                            nfft=self.window_length)
-        mfccs = mfccs.transpose()
+        # mfccs = python_speech_features.mfcc(signal=audio, samplerate=self.sampling_rate,
+        #                                     numcep=number_of_melbands, nfilt=number_of_melbands,
+        #                                     winlen=self.window_length_t, winstep=self.window_length_t,
+        #                                     nfft=self.window_length)
+        # mfccs = mfccs.transpose()
 
         if visualize:
             plt.figure(figsize=self.figure_size)

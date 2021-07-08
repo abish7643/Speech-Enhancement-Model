@@ -1,3 +1,7 @@
+import os
+import warnings
+warnings.filterwarnings("ignore")
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import math
 import matplotlib.pyplot as plt
 import librosa.display
@@ -12,21 +16,19 @@ from tensorflow.keras.models import load_model
 from pystoi import stoi
 from pypesq import pesq
 
-# from pesq import pesq
-
 # Load Model
-saved_model_dir = "Prototyping/Trained Model"
+saved_model_dir = "Assets/Trained Model"
 saved_model = "model_vad.h5"
 
 # Evaluate Files
-eval_clean_speech_dir = "Prototyping/Dataset Structure/Dataset/MS/CleanSpeech_training"
-eval_noisy_speech_dir = "Prototyping/Dataset Structure/Dataset/MS/NoisySpeech_training"
+eval_clean_speech_dir = "Assets/Datasets/MS/CleanSpeech_training"
+eval_noisy_speech_dir = "Assets/Datasets/MS/NoisySpeech_training"
 eval_clean_speech_file = "clnsp14.wav"
-eval_noisy_speech_file = "noisy14_SNRdb_10.0_clnsp14.wav"
+eval_noisy_speech_file = "noisy14_SNRdb_15.0_clnsp14.wav"
 
 # Evaluate Batch
 snr_req = [25, 20, 15, 10]
-STOI, PESQ, eval_batch = [], [], True
+STOI, PESQ, eval_batch = [], [], False
 # eval_batch_clean_files = ["clnsp3.wav", "clnsp14.wav", "clnsp9.wav", "clnsp13.wav",
 #                           "clnsp3.wav", "clnsp4.wav", "clnsp4.wav", "clnsp4.wav"]
 # eval_batch_noise_labels = ["babble", "engine", "white", "hammer",
@@ -38,7 +40,7 @@ eval_batch_noise_labels = ["engine", "white", "traffic"]
 eval_batch_noisy_files = []
 
 # Save Audio File
-save_wav_dir = "Generated Features"
+save_wav_dir = "Assets/Generated Features/Equalized Audio"
 save_noisy_speech_file = "noisy_speech_original.wav"
 save_noisy_speech_eq_file = "noisy_speech_equalized.wav"
 
@@ -193,7 +195,7 @@ def predict_equalize(clean_speech_file, noisy_speech_file, visualize=False, save
     generated_features, gains_ref, clean_speech, noisy_speech = get_features(
         clean_speech_file=clean_speech_file,
         noisy_speech_file=noisy_speech_file,
-        truncate_length=10
+        truncate_length=5
     )
     print("Generated Features : {}".format(generated_features.shape))
 
@@ -262,29 +264,29 @@ def predict_equalize(clean_speech_file, noisy_speech_file, visualize=False, save
 
     if visualize:
         # Spectrum
-        equalized_signal_stft = audio_utils.stft(audio=equalized_signal, title="Equalized Speech",
-                                                 visualize=True, save=save)
-        ideal_equalized_signal_stft = audio_utils.stft(audio=ideal_equalized_signal, title="Ideal Equalized Speech",
-                                                       visualize=True, save=save)
         noisy_speech_stft = audio_utils.stft(audio=noisy_speech, title="Noisy Speech",
                                              visualize=True, save=save)
-        clean_speech_stft = audio_utils.stft(audio=clean_speech, title="Clean Speech",
-                                             visualize=True, save=save)
+        equalized_signal_stft = audio_utils.stft(audio=equalized_signal, title="Equalized Speech",
+                                                 visualize=True, save=save)
+        # ideal_equalized_signal_stft = audio_utils.stft(audio=ideal_equalized_signal, title="Ideal Equalized Speech",
+        #                                                visualize=True, save=save)
+        # clean_speech_stft = audio_utils.stft(audio=clean_speech, title="Clean Speech",
+        #                                      visualize=True, save=save)
 
         # plt.figure(figsize=(18, 5))
         # plt.plot(vad_predicted)
         # plt.show()
 
-        plot_gains(gains_ref, title="Gains", save=save)
-        plot_gains(gains_predicted.T, title="Predicted Gains", save=save)
-        plot_gains(gains_predicted_vad.T, title="Predicted Gains With VAD", save=save)
+        # plot_gains(gains_ref, title="Gains", save=save)
+        # plot_gains(gains_predicted.T, title="Predicted Gains", save=save)
+        # plot_gains(gains_predicted_vad.T, title="Predicted Gains With VAD", save=save)
 
 
 if __name__ == "__main__":
     if not eval_batch:
         predict_equalize(clean_speech_file="/".join([eval_clean_speech_dir, eval_clean_speech_file]),
                          noisy_speech_file="/".join([eval_noisy_speech_dir, eval_noisy_speech_file]),
-                         visualize=False, save=False, save_audio=True
+                         visualize=True, save=False, save_audio=True
                          )
     else:
         # Create Noise Filenames

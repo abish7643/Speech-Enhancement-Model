@@ -6,10 +6,10 @@ from tensorflow.keras.models import Model
 import datetime
 
 train_model = True
-model_dir = "Prototyping/Trained Model"
+model_dir = "Assets/Trained Model"
 trained_model = "model_vad_v2.h5"
 
-gen_dataset_dir = "Generated Features"
+gen_dataset_dir = "Assets/Generated Features"
 gen_dataset = "feature_dataset_ms_librosa_vad.npz"
 
 

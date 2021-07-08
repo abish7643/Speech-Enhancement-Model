@@ -11,7 +11,7 @@ hop_length = 512
 window_length = 1024
 window_function = "vorbis"
 
-speech_sample = "Prototyping/Dataset Structure/Dataset/MS/NoisySpeech_training/noisy14_SNRdb_20.0_clnsp14.wav"
+speech_sample = "Assets/Datasets/MS/NoisySpeech_training/noisy14_SNRdb_20.0_clnsp14.wav"
 
 feature_extractor = FeatureExtraction(sampling_rate=sampling_rate,
                                       frame_length=frame_length, hop_length=hop_length,
